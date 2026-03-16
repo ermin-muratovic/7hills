@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>The 7 Hills Guide — Lisbon</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:ital,wght@0,300;0,400;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --navy:#0B1929;--navy2:#0f2235;--navy3:#132840;
+  --gold:#C9A84C;--gold2:#8B6914;--gold3:#F0DEB4;
+  --orange:#E07B39;--crimson:#C0392B;--teal:#27AE8F;--purple:#8E44AD;--blue:#2980B9;
+  --white:#fff;--muted:#7f9ab5;
+}
+html,body{height:100%;font-family:'Lato',sans-serif;background:var(--navy);color:var(--white);overflow:hidden}
+
+#header{
+  position:absolute;top:0;left:0;right:0;z-index:1000;
+  background:rgba(11,25,41,0.97);border-bottom:1px solid rgba(201,168,76,0.3);
+  padding:10px 16px 8px;backdrop-filter:blur(10px);
+}
+.header-row1{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.brand h1{font-family:'Cinzel',serif;font-size:17px;font-weight:700;color:var(--gold);letter-spacing:1.5px}
+.brand p{font-size:10px;color:var(--muted);font-weight:300;margin-top:1px;letter-spacing:0.5px}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#lang-toggle{display:flex;border:1.5px solid rgba(201,168,76,0.4);border-radius:20px;overflow:hidden;flex-shrink:0}
+.lang-btn{font-size:10px;font-weight:700;padding:3px 10px;cursor:pointer;background:transparent;color:var(--muted);border:none;font-family:'Lato',sans-serif;transition:all 0.18s;letter-spacing:0.5px}
+.lang-btn.active{background:var(--gold);color:var(--navy)}
+.tour-badges{display:flex;gap:6px;flex-wrap:wrap}
+.tbadge{font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;border:1.5px solid;cursor:pointer;transition:all 0.2s;background:transparent;letter-spacing:0.5px;font-family:'Lato',sans-serif;white-space:nowrap}
+.tbadge.gold{border-color:var(--gold);color:var(--gold)}
+.tbadge.gold.active,.tbadge.gold:hover{background:var(--gold);color:var(--navy)}
+.tbadge.orange{border-color:var(--orange);color:var(--orange)}
+.tbadge.orange.active,.tbadge.orange:hover{background:var(--orange);color:#fff}
+.tbadge.crimson{border-color:var(--crimson);color:var(--crimson)}
+.tbadge.crimson.active,.tbadge.crimson:hover{background:var(--crimson);color:#fff}
+.tbadge.all{border-color:var(--muted);color:var(--muted)}
+.tbadge.all.active,.tbadge.all:hover{background:var(--muted);color:var(--navy)}
+.header-row2{display:flex;gap:6px;flex-wrap:wrap}
+.cat-btn{font-size:10px;padding:3px 10px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);cursor:pointer;transition:all 0.18s;background:transparent;font-family:'Lato',sans-serif}
+.cat-btn.active{border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.08)}
+
+#map{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}
+.leaflet-container{background:#071520}
+
+#panel{position:absolute;right:0;top:0;bottom:0;width:320px;z-index:999;background:rgba(9,20,33,0.98);border-left:1px solid rgba(201,168,76,0.2);display:flex;flex-direction:column;transform:translateX(320px);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);backdrop-filter:blur(16px)}
+#panel.open{transform:translateX(0)}
+#panel-toggle{position:absolute;left:-32px;top:50%;transform:translateY(-50%);width:32px;height:56px;background:rgba(9,20,33,0.95);border:1px solid rgba(201,168,76,0.2);border-right:none;border-radius:8px 0 0 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:18px;transition:all 0.2s}
+#panel-toggle:hover{background:rgba(201,168,76,0.12)}
+#panel-header{padding:14px 16px 10px;border-bottom:1px solid rgba(201,168,76,0.15);flex-shrink:0}
+#panel-category{font-size:9px;font-weight:700;letter-spacing:1.5px;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:6px;text-transform:uppercase}
+#panel-name{font-family:'Cinzel',serif;font-size:15px;color:var(--gold);line-height:1.3;margin-bottom:4px}
+#panel-subtitle{font-size:11px;color:var(--muted);font-style:italic}
+#panel-body{flex:1;overflow-y:auto;padding:14px 16px 20px;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent}
+#panel-body::-webkit-scrollbar{width:3px}
+#panel-body::-webkit-scrollbar-thumb{background:var(--gold2);border-radius:2px}
+#panel-story{font-size:12.5px;color:#c5d5e8;line-height:1.75;margin-bottom:12px}
+
+/* ── Expandable long story ── */
+#expand-btn{
+  display:none;width:100%;text-align:left;padding:8px 12px;
+  background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);
+  border-radius:6px;color:var(--gold3);font-size:11px;font-weight:700;
+  cursor:pointer;margin-bottom:12px;font-family:'Lato',sans-serif;
+  letter-spacing:0.3px;transition:background 0.18s;
+}
+#expand-btn.visible{display:block}
+#expand-btn:hover{background:rgba(201,168,76,0.14)}
+#long-story{display:none;font-size:12px;color:#a8c0d6;line-height:1.8;margin-bottom:14px;border-left:2px solid rgba(201,168,76,0.3);padding-left:12px}
+#long-story.open{display:block}
+#long-story-sep{font-size:10px;color:var(--gold2);font-weight:700;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;display:none}
+#long-story-sep.open{display:block}
+
+.panel-tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:10px;margin:0 4px 4px 0}
+#panel-tags{margin-bottom:12px}
+#panel-tip{background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-left:3px solid var(--gold);border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--gold3);line-height:1.6;font-style:italic;display:none}
+#panel-tip.show{display:block}
+#panel-maps{display:block;width:100%;padding:9px;text-align:center;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.35);color:var(--gold);font-size:11px;font-weight:700;letter-spacing:0.5px;border-radius:6px;cursor:pointer;text-decoration:none;transition:all 0.2s}
+#panel-maps:hover{background:rgba(201,168,76,0.22)}
+
+.leaflet-popup-content-wrapper{background:rgba(9,20,33,0.97)!important;border:1px solid rgba(201,168,76,0.3)!important;border-radius:8px!important;box-shadow:0 8px 40px rgba(0,0,0,0.7)!important;backdrop-filter:blur(12px);padding:0!important}
+.leaflet-popup-tip{background:rgba(9,20,33,0.97)!important}
+.leaflet-popup-content{margin:0!important;padding:0!important;min-width:200px}
+.pop{padding:11px 13px}
+.pop-cat{font-size:8px;font-weight:700;letter-spacing:1.5px;padding:2px 7px;border-radius:8px;display:inline-block;margin-bottom:5px}
+.pop-name{font-family:'Cinzel',serif;font-size:12px;color:var(--gold);margin-bottom:4px;line-height:1.3}
+.pop-snippet{font-size:10.5px;color:#8aaac5;line-height:1.55;max-width:200px}
+.pop-more{display:block;margin-top:7px;padding:5px 8px;text-align:center;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.25);color:var(--gold);font-size:9.5px;font-weight:700;border-radius:5px;cursor:pointer;letter-spacing:0.5px}
+.leaflet-control-zoom{border:1px solid rgba(201,168,76,0.3)!important;border-radius:6px!important;overflow:hidden}
+.leaflet-control-zoom a{background:rgba(9,20,33,0.95)!important;color:var(--gold)!important;border-color:rgba(201,168,76,0.15)!important;line-height:26px!important}
+.leaflet-control-zoom a:hover{background:rgba(201,168,76,0.12)!important}
+.leaflet-control-attribution{background:rgba(9,20,33,0.7)!important;color:rgba(255,255,255,0.3)!important;font-size:8px!important}
+.leaflet-control-attribution a{color:rgba(255,255,255,0.4)!important}
+
+@media(max-width:680px){
+  #panel{width:100%;right:0;top:auto;bottom:0;height:65%;transform:translateY(100%);border-left:none;border-top:1px solid rgba(201,168,76,0.3)}
+  #panel.open{transform:translateY(0)}
+  #panel-toggle{left:50%;top:-22px;transform:translateX(-50%);width:56px;height:22px;border-radius:8px 8px 0 0;border-bottom:none;border-right:1px solid rgba(201,168,76,0.2)}
+  .brand h1{font-size:14px}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="header">
+  <div class="header-row1">
+    <div class="brand">
+      <h1>The 7 Hills Guide — Lisbon</h1>
+      <p id="hdr-sub">Tap any pin for history &amp; stories &nbsp;·&nbsp; English &nbsp;·&nbsp; Deutsch &nbsp;·&nbsp; Bosanski</p>
+    </div>
+    <div class="header-right">
+      <div id="lang-toggle">
+        <button class="lang-btn active" onclick="setLang('en',this)">EN</button>
+        <button class="lang-btn" onclick="setLang('de',this)">DE</button>
+      </div>
+      <div class="tour-badges">
+        <button class="tbadge gold" onclick="showTour(3,this)">3 Hills &middot; 90min &middot; &euro;150</button>
+        <button class="tbadge orange" onclick="showTour(5,this)">5 Hills &middot; 2hrs &middot; &euro;200</button>
+        <button class="tbadge crimson" onclick="showTour(7,this)">7 Hills &middot; 4hrs &middot; &euro;400</button>
+        <button class="tbadge all active" onclick="showTour(0,this)" data-i18n="all">All stops</button>
+      </div>
+    </div>
+  </div>
+  <div class="header-row2" id="cat-filters">
+    <button class="cat-btn active" onclick="toggleCat('all',this)" data-i18n="catAll">All</button>
+    <button class="cat-btn" onclick="toggleCat('viewpoint',this)" data-i18n="catView">&#128065; Viewpoints</button>
+    <button class="cat-btn" onclick="toggleCat('history',this)" data-i18n="catHist">&#127963; History</button>
+    <button class="cat-btn" onclick="toggleCat('church',this)" data-i18n="catChurch">&#9962; Churches</button>
+    <button class="cat-btn" onclick="toggleCat('gem',this)" data-i18n="catGem">&#128142; Hidden Gems</button>
+    <button class="cat-btn" onclick="toggleCat('culture',this)" data-i18n="catCult">&#127914; Culture</button>
+  </div>
+</div>
+
+<div id="panel">
+  <button id="panel-toggle" onclick="closePanel()">&#8250;</button>
+  <div id="panel-header">
+    <div id="panel-category"></div>
+    <div id="panel-name"></div>
+    <div id="panel-subtitle"></div>
+  </div>
+  <div id="panel-body">
+    <div id="panel-story"></div>
+    <button id="expand-btn" onclick="toggleLongStory()"></button>
+    <div id="long-story-sep"></div>
+    <div id="long-story"></div>
+    <div id="panel-tags"></div>
+    <div id="panel-tip"></div>
+    <a id="panel-maps" href="#" target="_blank">Open in Google Maps</a>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ── UI STRINGS ───────────────────────────────────────────────────────────────
+const UI = {
+  en:{
+    hdrSub:'Tap any pin for history & stories · English · Deutsch · Bosanski',
+    all:'All stops',catAll:'All',catView:'Viewpoints',catHist:'History',
+    catChurch:'Churches',catGem:'Hidden Gems',catCult:'Culture',
+    mapsBtn:'Open in Google Maps',guideTip:'Guide tip: ',readMore:'Read full story',
+    expandBtn:'Read the full story  ▾',collapseBtn:'Collapse  ▴',
+    longStoryLabel:'THE FULL STORY',
+    tourLabels:{3:'3-Hill stop',5:'5-Hill stop',7:'7-Hill stop',0:'Extra landmark'},
+    catLabels:{viewpoint:'Viewpoint',history:'History',church:'Church',gem:'Hidden Gem',food:'Food & Drink',culture:'Culture'},
+  },
+  de:{
+    hdrSub:'Tippe auf einen Pin fur Geschichte & Geschichten · English · Deutsch · Bosanski',
+    all:'Alle Orte',catAll:'Alle',catView:'Aussichtspunkte',catHist:'Geschichte',
+    catChurch:'Kirchen',catGem:'Geheimtipps',catCult:'Kultur',
+    mapsBtn:'In Google Maps offnen',guideTip:'Guide-Tipp: ',readMore:'Ganze Geschichte lesen',
+    expandBtn:'Die ganze Geschichte lesen  ▾',collapseBtn:'Einklappen  ▴',
+    longStoryLabel:'DIE GANZE GESCHICHTE',
+    tourLabels:{3:'3-Hugel-Stop',5:'5-Hugel-Stop',7:'7-Hugel-Stop',0:'Sehenswurdigkeit'},
+    catLabels:{viewpoint:'Aussichtspunkt',history:'Geschichte',church:'Kirche',gem:'Geheimtipp',food:'Essen & Trinken',culture:'Kultur'},
+  }
+};
+
+// ── STOP DATA ────────────────────────────────────────────────────────────────
+// mapsSearch: used for Google Maps link (name + address search)
+// en/de: { name, subtitle, story (short), longStory (optional), tip (guide only) }
+const STOPS = [
+
+  {id:'comercio',lat:38.7075,lon:-9.1364,
+   mapsSearch:'Praca do Comercio Lisboa',
+   tour:3,cat:'history',tags:['Age of Discoveries','1755 Earthquake','Royal Palace','Empire'],
+   en:{name:'Praca do Comercio',subtitle:'Start & finish of every tour',
+    story:'You are standing where the Portuguese Empire launched its conquest of the world. The Tagus River stretches behind you — every explorer who sailed to Brazil, India, and Africa set off from near this spot. The triumphal arch above was built after the catastrophic 1755 earthquake destroyed the royal palace that stood here for centuries.',
+    tip:'Your #1 spot for finding tourists. Cruise ships dock nearby, buses drop groups here. Stand by your tuk tuk near the arch.'},
+   de:{name:'Praca do Comercio',subtitle:'Start & Ziel jeder Tour',
+    story:'Sie stehen dort, wo das portugiesische Weltreich seine Welteroberung startete. Der Tejo erstreckt sich hinter Ihnen — jeder Entdecker nach Brasilien, Indien und Afrika brach von hier auf. Der Triumphbogen wurde nach dem Erdbeben 1755 erbaut, das den koniglichen Palast hier zerstorte.',
+    tip:'Ihr bester Platz fur Touristen. Kreuzfahrtschiffe legen an, Busse bringen Gruppen. Stellen Sie sich neben Ihr Tuk Tuk beim Bogen.'}},
+
+  {id:'rossio',lat:38.7139,lon:-9.1393,
+   mapsSearch:'Rossio Praca Dom Pedro IV Lisboa',
+   tour:3,cat:'history',tags:['Dom Pedro IV','Inquisition','Calcada Portuguesa','Revolution','Brazil'],
+   en:{name:'Rossio Square',subtitle:'The heartbeat of Lisbon — 700 years',
+    story:'For seven centuries, everything important in Lisbon happened right here. Markets, bullfights, Inquisition trials, revolutions — this square absorbed it all. The wavy black-and-white mosaic pavement is calcada portuguesa, laid entirely by hand. The column holds Dom Pedro IV — King of Portugal AND Emperor of Brazil simultaneously. One man. Two empires.',
+    longStory:'Who was Dom Pedro IV? A man history cannot easily judge. Born in 1798, son of King Joao VI, he grew up between Lisbon and Rio de Janeiro as Brazil was declared capital of the Portuguese Empire. In 1822, aged just 23, he made the most dramatic decision of his era: ignoring royal orders to return to Portugal, he declared Brazilian independence with a cry of "Independence or Death!" at the Ipiranga River. That single act created South America\'s largest nation and kept it unified — unlike the Spanish colonies, which fractured into a dozen countries. He became Emperor Pedro I of Brazil. Then he abdicated. Then he came back to Europe, inherited Portugal, granted a constitution, abdicated again, and spent his final years fighting a civil war against his own brother to restore liberal government. He died of tuberculosis at just 35 years old. His dual legacy is literally split between continents: his body is entombed in Sao Paulo; his heart is preserved in the Church of Lapa in Porto, a city he loved deeply. Was his life controversial? Yes — he had multiple affairs, his marriages were complex, and he ruled with a fierce autocratic streak when he felt it necessary. But he is remembered as a Liberator in two countries simultaneously, which is truly unique in world history.',
+    tip:'If tourists ask about Dom Pedro: "King of Portugal AND Emperor of Brazil. He declared independence for Brazil, then came back and gave Portugal its first real constitution. Died at 35. His body is in Brazil, but his heart is literally in Portugal."'},
+   de:{name:'Rossio-Platz',subtitle:'Das Herz Lissabons — seit 700 Jahren',
+    story:'Sieben Jahrhunderte lang geschah alles Wichtige in Lissabon genau hier. Markte, Stierkampfe, Inquisitionsprozesse, Revolutionen — dieser Platz hat alles erlebt. Das wellenformige Schwarz-Weiss-Pflaster heisst calcada portuguesa — vollstandig von Hand verlegt. Die Saule zeigt Dom Pedro IV. — gleichzeitig Konig von Portugal UND Kaiser von Brasilien.',
+    longStory:'Wer war Dom Pedro IV.? Ein Mann, den die Geschichte schwer einordnen kann. 1798 geboren, Sohn von Konig Joao VI., wuchs er zwischen Lissabon und Rio de Janeiro auf. 1822, mit nur 23 Jahren, traf er die dramatischste Entscheidung seiner Ara: Er ignorierte konigliche Befehle zur Ruckkehr nach Portugal und erklarte die Unabhangigkeit Brasiliens mit dem Ruf "Unabhangigkeit oder Tod!" am Ipiranga-Fluss. Diese eine Tat schuf Sudamerikas grosstes Land und hielt es vereint — im Gegensatz zu den spanischen Kolonien, die in ein Dutzend Lander zerfielen. Er wurde Kaiser Pedro I. von Brasilien, dankte ab, kehrte nach Europa zuruck, erbte Portugal, gewahrte eine Verfassung, dankte erneut ab und verbrachte seine letzten Jahre damit, einen Burgerkrieg gegen seinen eigenen Bruder zu fuhren. Er starb mit nur 35 Jahren an Tuberkulose. Sein Erbe ist buchstablich zwischen den Kontinenten geteilt: sein Korper liegt in Sao Paulo; sein Herz ist in der Kirche Lapa in Porto aufbewahrt.',
+    tip:'Wenn Touristen nach Dom Pedro fragen: "Konig von Portugal UND Kaiser von Brasilien. Er erklarte die Unabhangigkeit Brasiliens, kam zuruck und gab Portugal seine erste Verfassung. Starb mit 35. Sein Korper ist in Brasilien — aber sein Herz ist buchstablich in Portugal."'}},
+
+  {id:'portas',lat:38.7117,lon:-9.1319,
+   mapsSearch:'Largo das Portas do Sol Lisboa Alfama',
+   tour:3,cat:'viewpoint',tags:['Alfama','Moorish Lisbon','Fado','Sao Vicente Hill'],
+   en:{name:'Largo das Portas do Sol',subtitle:'Gateway into Alfama — best rooftop view',
+    story:'You are standing at the ancient gate into Alfama — the oldest surviving neighbourhood in Lisbon. Below is a sea of terracotta rooftops stretching to the Tagus. This hillside was home to the Moors for over 400 years, and the winding street layout has barely changed since. Listen: if you hear music drifting up, that is fado — the soul music of Lisbon, born in these alleys.',
+    tip:'Perfect photo stop. Let tourists photograph freely. Tell the Moorish story here.'},
+   de:{name:'Largo das Portas do Sol',subtitle:'Das Tor nach Alfama — bester Dachblick',
+    story:'Sie stehen am alten Tor nach Alfama — dem altesten erhaltenen Viertel Lissabons. Unter Ihnen ein Meer aus Terrakotta-Dachern bis zum Tejo. Dieser Hang war uber 400 Jahre das Zuhause der Mauren, und das gewundene Strassennetz hat sich kaum verandert. Horen Sie: Musik von unten? Das ist Fado — die Seelenmusik Lissabons.',
+    tip:'Perfekter Foto-Stopp. Lassen Sie Touristen frei fotografieren.'}},
+
+  {id:'castle',lat:38.7139,lon:-9.1332,
+   mapsSearch:'Castelo de Sao Jorge Lisboa',
+   tour:3,cat:'history',tags:['Afonso Henriques','Moors','1147','Birth of Portugal'],
+   en:{name:'Castelo de Sao Jorge',subtitle:'Where Portugal was born — 1147',
+    story:'The Moors built this castle in the 10th century and held it for nearly 400 years. On October 25, 1147, King Afonso Henriques captured it — that moment was the birth of Portugal as a nation. From the walls: five of the seven hills, the Tagus, and on a clear day the mountains of Sintra 30km away.',
+    longStory:'Who was Afonso Henriques, and how did Portugal become a country? The story begins with a French nobleman — Henry of Burgundy — who arrived in Iberia to help fight the Moors and was rewarded with the County of Portugal, a small frontier territory. His son, Afonso Henriques, born around 1109, was determined to expand it. At just 14 years old, he fought and defeated his own mother in battle to take control of the county. In 1139 he defeated five Moorish kings at the Battle of Ourique and proclaimed himself King of Portugal — though his Spanish overlords did not yet recognise him. He then made a strategic deal: a fleet of crusaders heading to the Holy Land was passing through — he offered them the right to plunder Lisbon in exchange for military help. They agreed. After a four-month siege, Lisbon fell on October 25, 1147. The Treaty of Zamora in 1143 had already begun international recognition of Portugal as a separate kingdom — the only one born directly from the Reconquista with its own distinct identity. Afonso Henriques died in 1185 at the remarkable age of 76, having tripled the size of his territory and established a dynasty that would rule for three centuries. His remains rest at Santa Cruz Monastery in Coimbra.',
+    tip:'You don\'t need to go inside. The walls and the view are the story. Point to the five visible hills and tell them where you go next.'},
+   de:{name:'Castelo de Sao Jorge',subtitle:'Wo Portugal geboren wurde — 1147',
+    story:'Die Mauren bauten diese Burg im 10. Jahrhundert und hielten sie fast 400 Jahre. Am 25. Oktober 1147 eroberte Konig Afonso Henriques sie — dieser Moment war die Geburtsstunde Portugals. Von den Mauern: funf der sieben Hugel, der Tejo und bei klarem Wetter die Berge von Sintra 30 km entfernt.',
+    longStory:'Wer war Afonso Henriques, und wie entstand Portugal als Land? Die Geschichte beginnt mit einem franzosischen Adeligen — Heinrich von Burgund — der nach Iberia kam, um gegen die Mauren zu kampfen, und als Belohnung die Grafschaft Portugal erhielt. Sein Sohn Afonso Henriques, geboren um 1109, war entschlossen, sie zu vergroessern. Mit nur 14 Jahren besiegte er seine eigene Mutter in einer Schlacht, um die Kontrolle zu ubernehmen. 1139 besiegte er funf maurische Konige in der Schlacht von Ourique und proklamierte sich selbst zum Konig von Portugal. Er machte dann einen strategischen Deal: Kreuzfahrer auf dem Weg ins Heilige Land durften Lissabon pluendern, wenn sie ihm halfen, es einzunehmen. Nach einer viermonatigen Belagerung fiel Lissabon am 25. Oktober 1147. Afonso Henriques starb 1185 im bemerkenswerten Alter von 76 Jahren und hatte sein Territorium verdreifacht.',
+    tip:'Sie mussen nicht hinein. Die Mauern und der Blick sind die Geschichte. Zeigen Sie auf die funf sichtbaren Hugel.'}},
+
+  {id:'monte',lat:38.7170,lon:-9.1327,
+   mapsSearch:'Miradouro da Senhora do Monte Lisboa',
+   tour:7,cat:'viewpoint',tags:['Santo Andre Hill','Highest Viewpoint','360 Panorama','Locals Secret'],
+   en:{name:'Miradouro Sra. do Monte',subtitle:'Highest viewpoint in all of Lisbon',
+    story:'This is the crown of Lisbon — the highest of all miradouros, sitting on Santo Andre hill. Complete 360-degree panorama: every hill, the entire city, the Tagus below, and on a clear day Setúbal 50 kilometres away. Almost no tourists know this viewpoint. The chapel here, Nossa Senhora do Monte, is where pregnant women traditionally came to pray before childbirth — a tradition hundreds of years old.',
+    tip:'UPSELL on the 3-hills tour. Drive past and say: "This is the highest viewpoint in Lisbon — almost nobody knows it. Want 20 more minutes?" Most say yes. That is 30-50 euros extra.'},
+   de:{name:'Miradouro Sra. do Monte',subtitle:'Hochster Aussichtspunkt ganz Lissabons',
+    story:'Dies ist die Krone Lissabons — der hochste aller Miradouros, auf dem Santo-Andre-Hugel. Vollstandiges 360-Grad-Panorama: jeden Hugel, die ganze Stadt, den Tejo darunter. Fast keine Touristen kennen diesen Aussichtspunkt. Die Kapelle Nossa Senhora do Monte ist der Ort, wo schwangere Frauen traditionell vor der Geburt beten kamen.',
+    tip:'UPSELL auf der 3-Hugel-Tour. Fahren Sie vorbei: "Das ist der hochste Aussichtspunkt in Lissabon — fast niemand kennt ihn. Noch 20 Minuten?" Die meisten sagen ja.'}},
+
+  {id:'graca',lat:38.7168,lon:-9.1337,
+   mapsSearch:'Miradouro da Graca Lisboa',
+   tour:7,cat:'viewpoint',tags:['Castle View','Local Neighbourhood','Sunset','Santo Andre Hill'],
+   en:{name:'Miradouro da Graca',subtitle:'Best diagonal view of the castle',
+    story:'The Miradouro da Graca gives you the perfect diagonal view of Sao Jorge Castle, with the Tagus glittering behind it. Most tourists photograph the castle from below. From here you look across at it as an equal. The Graca neighbourhood is authentic working-class Lisbon — tiled facades, corner stores, elderly men playing cards. Tourism has not yet reached here.',
+    tip:'Best at golden hour, 17-18h in summer. Perfect end to a late afternoon tour.'},
+   de:{name:'Miradouro da Graca',subtitle:'Bester Diagonalblick auf die Burg',
+    story:'Der Miradouro da Graca bietet den perfekten Diagonalblick auf das Castelo Sao Jorge, mit dem glitzernden Tejo dahinter. Die meisten Touristen fotografieren die Burg von unten — von hier schaut man als Gleicher auf sie herab. Das Viertel Graca ist authentisches Lissabon der Arbeiterklasse.',
+    tip:'Am besten zur goldenen Stunde, 17-18 Uhr im Sommer. Perfekter Abschluss.'}},
+
+  {id:'santana',lat:38.7205,lon:-9.1393,
+   mapsSearch:"Colina de Sant Ana Lisboa",
+   tour:7,cat:'history',tags:["Sant'Ana Hill",'Convents','Hospitals','15th Century'],
+   en:{name:"Sant'Ana Hill",subtitle:'The healing hill — 500 years of hospitals',
+    story:"The quiet hill — no famous monuments, no queues. Religious orders chose this hill in the 15th century: high, airy, separate from the noise below. The old hospitals and convents have served Lisbon through plague, earthquake, fire and war. Notice how different the atmosphere feels from Alfama — this is the city breathing slowly.",
+    tip:'Drive through without long stops — the value is contrast and atmosphere. Say: "This is where the real Lisbon lives."'},
+   de:{name:"Sant'Ana-Hugel",subtitle:'Der Heilungshugel — 500 Jahre Krankenhauser',
+    story:"Der ruhige Hugel — keine berumhten Monumente, keine Schlangen. Ordensgemeinschaften wahlten diesen Hugel im 15. Jahrhundert: hoch, luftig, getrennt vom Larm. Die alten Krankenhauser haben Lissabon funf Jahrhunderte lang durch Pest, Erdbeben und Krieg begleitet.",
+    tip:'Fahren Sie durch ohne lange Halte — der Wert liegt im Kontrast. Sagen Sie: "Hier lebt das echte Lissabon."'}},
+
+  {id:'sroque',lat:38.7142,lon:-9.1438,
+   mapsSearch:'Igreja de Sao Roque Lisboa',
+   tour:5,cat:'church',tags:['Jesuits','Baroque','Chapel of St John','Gold Leaf','Sao Roque Hill'],
+   en:{name:'Igreja de Sao Roque',subtitle:'Plain outside. Extraordinary inside.',
+    story:'The Jesuits built Sao Roque in the 16th century with a deliberate strategy: look plain outside, then shock with the interior. Inside, eight side chapels compete to be the most extravagant — gold leaf, Italian marble, azulejo tiles. One chapel was built entirely in Rome, blessed by the Pope, then disassembled and shipped to Lisbon piece by piece.',
+    tip:'Use the plain exterior as your hook: "This church looks completely ordinary from outside. Want to see what the Jesuits were hiding inside?"'},
+   de:{name:'Igreja de Sao Roque',subtitle:'Schlicht aussen. Aussergewohnlich innen.',
+    story:'Die Jesuiten bauten Sao Roque im 16. Jahrhundert mit bewusster Strategie: aussen schlicht, innen ein Schock. Acht Seitenkapellen wetteifern — Blattgold, italienischer Marmor, Azulejo-Kacheln. Eine Kapelle wurde komplett in Rom gebaut, vom Papst gesegnet, zerlegt und nach Lissabon verschifft.',
+    tip:'Nutzen Sie das schlichte Aussere als Aufhanger: "Diese Kirche sieht vollig gewohnlich aus. Wollen Sie sehen, was die Jesuiten darin versteckt haben?"'}},
+
+  {id:'alcantara_view',lat:38.7153,lon:-9.1430,
+   mapsSearch:'Miradouro de Sao Pedro de Alcantara Lisboa',
+   tour:5,cat:'viewpoint',tags:['Sao Roque Hill','Castle View','Fernando Pessoa','Two Powers'],
+   en:{name:'Miradouro Sao Pedro de Alcantara',subtitle:'Two hills facing each other across history',
+    story:'Look east: directly across, at exactly the same height, Sao Jorge Castle sits on its hill. Two hills facing each other. One for the church, one for the king. The geometry of Lisbon power laid bare. Fernando Pessoa, Portugal\'s greatest poet, spent decades wandering these streets. His statue sits in a cafe two streets from here — he ordered the same table, same coffee, every day for decades.',
+    tip:'Photo stop. Point east to the castle: "Two hills, two powers — that is the story of Lisbon."'},
+   de:{name:'Miradouro Sao Pedro de Alcantara',subtitle:'Zwei Hugel, die sich uber die Geschichte ansehen',
+    story:'Schauen Sie nach Osten: genau gegenuber, auf derselben Hohe, sitzt das Castelo Sao Jorge. Zwei Hugel, die sich ansehen. Einer fur die Kirche, einer fur den Konig. Fernando Pessoa verbrachte Jahrzehnte in diesen Strassen. Seine Statue sitzt in einem Cafe zwei Strassen von hier — er bestellte jahrzehntelang taglich denselben Tisch, denselben Kaffee.',
+    tip:'Foto-Stopp. Zeigen Sie nach Osten: "Zwei Hugel, zwei Machte — das ist die Geschichte Lissabons."'}},
+
+  {id:'carmo',lat:38.7126,lon:-9.1408,
+   mapsSearch:'Convento do Carmo Lisboa Museu Arqueologico',
+   tour:5,cat:'history',tags:['1755 Earthquake','Marquis of Pombal','Gothic','Memorial','Chagas Hill'],
+   en:{name:'Convento do Carmo',subtitle:'Destroyed 1755 — left open as a memorial forever',
+    story:'On November 1st 1755 — All Saints Day — while all of Lisbon was at church, the ground shook for 9 minutes. Tsunami followed. Then fire for five days. 60,000 people died. The Carmo Convent was the most magnificent Gothic church in the city. The Marquis of Pombal left the ruins open to the sky forever, as a permanent memorial. They stand open today, 270 years later. Lisbon does not hide its wounds.',
+    longStory:'Who was the Marquis of Pombal, and what exactly did he do? His real name was Sebastiao Jose de Carvalho e Melo — "Pombal" was a title, the name of a small town he was given as part of his elevation to the nobility. He rose to power as chief minister under the weak and earthquake-traumatised King Jose I, and the disaster of 1755 became his defining moment. His famous phrase after the earthquake was blunt and practical: "Bury the dead, feed the living." Within hours he had taken command. Within weeks he had a plan. Within months he had a grid drawn for an entirely new city centre. He invented what we now recognise as disaster management. His engineering team devised the "gaiola pombalina" — the Pombaline cage — a flexible wooden internal frame within stone facades, tested by having soldiers march around the new buildings to simulate tremors. This was the world\'s first earthquake-resistant urban construction system. But Pombal was also ruthless. He used the chaos of reconstruction to consolidate personal power, expelled the Jesuits from Portugal and all its colonies in 1759 (he blamed them partly for the disaster), and orchestrated the brutal Tavora affair — accusing powerful noble families of attempted regicide, torturing and publicly executing them in 1759. When King Jose I died in 1777, his successor Queen Maria I — who despised Pombal — had him tried and exiled to his estates, where he died in 1782, partly disgraced. But his city stands forever.',
+    tip:'Most emotionally powerful stop on any tour. Pause here. Let the silence work. "Pombal could have rebuilt it. He chose not to."'},
+   de:{name:'Convento do Carmo',subtitle:'Zerstort 1755 — als Mahnmal fur immer offen',
+    story:'Am 1. November 1755 — Allerheiligen — bebte wahrend ganz Lissabon in der Kirche war die Erde 9 Minuten. Dann Tsunami. Dann funf Tage Feuer. 60.000 Menschen starben. Das Convento do Carmo war die prachtigste Gotische Kirche. Der Marquis de Pombal liess die Ruinen fur immer offen zum Himmel — als Mahnmal. Sie stehen noch heute offen, 270 Jahre spater.',
+    longStory:'Wer war der Marquis de Pombal wirklich? Sein richtiger Name war Sebastiao Jose de Carvalho e Melo — "Pombal" war ein Adelstitel, benannt nach einer kleinen Stadt. Er stieg zum Chefminister unter dem erschutterten Konig Jose I. auf, und das Erdbeben wurde sein definierender Moment. Seine beruhmten Worte danach: "Die Toten begraben, die Lebenden ernahren." Innerhalb von Stunden hatte er die Kontrolle ubernommen, innerhalb von Monaten einen Wiederaufbauplan. Er erfand die "gaiola pombalina" — den Pombalinischen Kafig — ein flexibles Holzgerippe in Steinfassaden, getestet indem Soldaten um die neuen Gebaude marschierten. Das war das erste erdbebensichere Stadtbausystem der Welt. Aber Pombal war auch rucksichtslos: Er vertrieb die Jesuiten, orchestrierte die brutale Tavora-Affare und liess machtvolle Adelsfamilien foltern und hinrichten. Als Konig Jose I. 1777 starb, wurde er von der neuen Konigin versucht und verbannt. Er starb 1782 halb in Ungnade. Aber seine Stadt steht fur immer.',
+    tip:'Emotional kraftvollster Stop. Pausieren Sie hier. Die Stille wirken lassen. "Pombal hatte es wiederaufbauen konnen. Er entschied sich dagegen."'}},
+
+  {id:'pessoa',lat:38.7107,lon:-9.1421,
+   mapsSearch:'A Brasileira Cafe Fernando Pessoa Chiado Lisboa',
+   tour:5,cat:'culture',tags:['Fernando Pessoa','A Brasileira','Literature','Heteronyms','Chiado'],
+   en:{name:'A Brasileira & Fernando Pessoa',subtitle:"Portugal's Shakespeare — sat here every day",
+    story:"Fernando Pessoa is to Portugal what Shakespeare is to England. He wrote under four different names — he called them heteronyms, each with their own biography and style. When he died in 1935, a trunk was found containing 27,543 unpublished manuscripts. The bronze statue outside A Brasileira shows him as he always sat — coat and hat, watching the street.",
+    longStory:"Why was Fernando Pessoa's life so unusual and sometimes controversial? Born in Lisbon in 1888, he moved to Durban, South Africa at age 7 after his stepfather was posted there as consul. He was educated entirely in English and won a prize for best English essay in all of South Africa. He returned to Lisbon at 17 speaking better English than Portuguese and spent the rest of his life working as a commercial translator — a career that left him largely unknown while alive. He never married, though he had a brief romance with a typographer named Ofélia Queiroz, who fell deeply in love with him. He broke off the relationship by letter — coldly, almost clinically — explaining that he could not offer what she needed. He created at least 72 fictional authors — not just pen names, but complete alternative personalities with their own birth dates, astrological charts, philosophical positions and consistent writing styles. The three main ones: Alberto Caeiro, a pastoral poet who believed in pure sensation; Ricardo Reis, a classicist who admired Horace and accepted fatalism; and Alvaro de Campos, a modernist who wrote about industrial noise, speed and existential despair. Pessoa was also deeply involved in astrology and the occult — he cast horoscopes professionally and was a practising Rosicrucian. He drank heavily throughout his life and died of cirrhosis of the liver at age 47. The trunk of manuscripts was only catalogued fully in the 1980s and is still not completely published today. His most quoted line: I am the gap between my desire and what life has made of me.",
+    tip:'"He invented four different personalities and published poetry under all of them. The Portuguese say he was the loneliest man who ever lived. He died at 47 and left 27,000 unpublished pages."'},
+   de:{name:'A Brasileira & Fernando Pessoa',subtitle:"Portugals Shakespeare — sass hier jeden Tag",
+    story:"Fernando Pessoa ist fur Portugal, was Shakespeare fur England ist. Er schrieb unter vier verschiedenen Namen — Heteronyme, jeder mit eigener Biographie. Als er 1935 starb, fand man eine Truhe mit 27.543 unveroffentlichten Manuskripten. Die Bronzestatue vor A Brasileira zeigt ihn, wie er immer sass — Mantel und Hut, die Strasse beobachtend.",
+    longStory:"Warum war Pessoas Leben so ungewohnlich? 1888 in Lissabon geboren, zog er mit 7 nach Durban, Sudafrika, wo er vollstandig auf Englisch erzogen wurde — er sprach als junger Mann besser Englisch als Portugiesisch. Er kehrte mit 17 zuruck und arbeitete sein Leben lang als kommerzieller Ubersetzer. Er heiratete nie. Eine kurze Romanze mit Ofélia Queiroz brach er per Brief ab — kalt, fast klinisch — mit der Erklarung, er konne nicht bieten, was sie brauche. Er schuf mindestens 72 fiktive Autoren mit eigenen Geburtstagen, astrologischen Charts und konsistenten Schreibstilen. Die drei Hauptheteronyme: Alberto Caeiro (pastoraler Dichter), Ricardo Reis (klassizistischer Fatalist) und Alvaro de Campos (modernistischer Existentialist). Pessoa war auch tief in Astrologie und Okkultismus verwickelt. Er trank sein Leben lang stark und starb mit 47 an Leberzirrhose. Seine 27.000 Manuskripte sind bis heute nicht vollstandig veroffentlicht.",
+    tip:'"Er erfand vier verschiedene Personlichkeiten und veroffentlichte Gedichte unter allen. Die Portugiesen sagen, er war der einsamste Mensch, der je lebte. Starb mit 47 und hinterliess 27.000 unveroffentlichte Seiten."'}},
+
+  {id:'adamastor',lat:38.7073,lon:-9.1468,
+   mapsSearch:'Miradouro de Santa Catarina Lisboa Adamastor',
+   tour:5,cat:'viewpoint',tags:['Santa Catarina Hill','Sunset','25 de Abril Bridge','Carnation Revolution','Camoes'],
+   en:{name:'Miradouro do Adamastor',subtitle:'The sunset hill — where Lisbon comes to breathe',
+    story:"Adamastor was a sea monster from Os Lusiadas — Portugal's national epic poem by Luis de Camoes. He represented the terror of Cape of Good Hope, the unknown storm sailors feared. The 25 de Abril Bridge was built by the same American company as the Golden Gate. Opened 1966, it was renamed on April 25, 1974: the Carnation Revolution. Soldiers put carnations in their rifle barrels instead of bullets. That is how Portugal became a democracy.",
+    longStory:"Who was Luis de Camoes and why does a sea monster have a viewpoint named after it? Camoes was born around 1524 and is considered Portugal's greatest literary figure — the equivalent of Dante, Cervantes and Shakespeare combined for the Portuguese-speaking world. Os Lusiadas (The Lusiads), published in 1572, is a 10-canto epic poem narrating Vasco da Gama's voyage to India, framed through classical mythology. Adamastor appears as a terrifying giant — the spirit of the Cape of Good Hope itself — who rises from the sea to threaten the Portuguese fleet and prophesy disaster. He is one of the most powerful monster figures in all European literature. Camoes himself led an extraordinary and often disastrous life: he lost his right eye fighting Moorish pirates, was imprisoned twice (once for brawling in Lisbon), spent 17 years in Asia including Macau, was shipwrecked returning to Portugal (saving his manuscript by swimming with it above water, according to legend), and died in poverty in 1580, the same year Portugal lost its independence to Spain. He is buried in the Jeronimos Monastery in Belem. As for the Carnation Revolution: on April 25, 1974, junior military officers launched a coup against the 48-year-old Salazar dictatorship. Citizens poured into the streets and placed red carnations — which were in flower season — into the soldiers' rifle barrels. Not a single person died. It remains one of the most peaceful revolutions in history.",
+    tip:'Best at sunset (19-20h in summer). Always tell the Carnation Revolution story here — it lands every time.'},
+   de:{name:'Miradouro do Adamastor',subtitle:'Der Sonnenuntergangs-Hugel — wo Lissabon atmet',
+    story:"Adamastor war ein Seeungeheuer aus Os Lusiadas — Portugals nationalem Epos von Luis de Camoes. Er verkotperte den Schrecken des Kaps der Guten Hoffnung. Die 25-de-Abril-Brucke wurde von derselben Firma wie die Golden Gate gebaut. Am 25. April 1974 umbenannt: die Nelkenrevolution. Soldaten steckten Nelken in ihre Gewehrlaufe statt Kugeln. So wurde Portugal eine Demokratie.",
+    longStory:"Wer war Luis de Camoes und warum ist ein Seeungeheuer Namensgeber eines Aussichtspunkts? Camoes, geboren um 1524, ist die wichtigste Literaturfigur Portugals — das Aquivalent von Dante, Cervantes und Shakespeare zusammen. Os Lusiadas (1572) ist ein episches Gedicht uber Vasco da Gamas Reise nach Indien. Adamastor erscheint als riesiger Geist des Kaps der Guten Hoffnung und bedroht die portugiesische Flotte. Camoes selbst fuhrte ein dramatisches Leben: Er verlor sein rechtes Auge im Kampf, wurde zweimal inhaftiert, verbrachte 17 Jahre in Asien und war sein Manuskript beim Schiffbruch swimmend uber Wasser halten — laut Legende. Er starb 1580 in Armut. Zur Nelkenrevolution: Am 25. April 1974 putschten Offiziere gegen die 48-jahrige Salazar-Diktatur. Burger steckten rote Nelken — Saison hatte sie — in Gewehrlaufe der Soldaten. Kein einziger Toter. Eine der friedlichsten Revolutionen der Geschichte.",
+    tip:'Am besten bei Sonnenuntergang (19-20 Uhr im Sommer). Erzahlen Sie immer die Nelkenrevolution hier.'}},
+
+  {id:'alfama_walk',lat:38.7120,lon:-9.1312,
+   mapsSearch:'Alfama Lisboa',
+   tour:7,cat:'culture',tags:['Fado','Moorish Architecture','3000 Years','Al-hama'],
+   en:{name:'Alfama — Fado & Moorish Streets',subtitle:"Europe's last Moorish neighbourhood",
+    story:"Walk into Alfama and you walk into a time machine. The street layout is pure Moorish — no grid, no right angles, organic paths following the hill's natural contours. The Moors called this area Al-hama — the hot springs. They ruled Lisbon for 400 years (711 to 1147 AD). Fado was born in these alleys in the 19th century among fishermen who turned longing into art."},
+   de:{name:'Alfama — Fado & maurische Gassen',subtitle:"Europas letztes maurisches Viertel",
+    story:"Betreten Sie Alfama und Sie betreten eine Zeitmaschine. Das Strassennetz ist rein maurisch — kein Raster, keine rechten Winkel, organische Pfade. Die Mauren nannten dieses Gebiet Al-hama — die heissen Quellen. Sie regierten Lissabon 400 Jahre (711 bis 1147 n.Chr.). Fado wurde im 19. Jahrhundert in diesen Gassen unter Fischern geboren."}},
+
+  {id:'panteao',lat:38.7148,lon:-9.1269,
+   mapsSearch:'Panteon Nacional Lisboa Santa Engracia',
+   tour:7,cat:'history',tags:['Vasco da Gama','Amalia Rodrigues','Camoes','284 Years to Build','Baroque'],
+   en:{name:'Panteao Nacional',subtitle:"Portugal's pantheon — heroes rest here",
+    story:"The National Pantheon took 284 years to build, which gave birth to the Portuguese expression 'obras de Santa Engracia' — an endless, never-finished project. Inside: cenotaphs of Vasco da Gama, Pedro Alvares Cabral, the poet Camoes, and fado legend Amalia Rodrigues. Rooftop gives spectacular views over eastern Lisbon.",
+    longStory:"Who was Vasco da Gama and why does he matter? In 1497, Vasco da Gama left Lisbon with four ships and 170 men. Two years later, he returned having done something no European had ever done: sailed all the way around Africa and reached India by sea. This single voyage transformed world history. The spice trade — which had been controlled by Arab and Venetian middlemen for centuries — was now open to Portugal. Lisbon became the richest city in Europe almost overnight. But da Gama was not a gentle explorer. On his second voyage to India in 1502, he captured a ship carrying 400 Muslim pilgrims returning from Mecca. He locked them below decks and burned the ship. This act was recorded by witnesses and remains one of the most notorious war crimes of the Age of Exploration. He was ruthless, pragmatic and extraordinarily effective as a commander. He made three voyages to India. On the third, in 1524, he died of malaria in the Indian port of Cochin, aged around 64. His remains were eventually brought back to Portugal in 1539 and now rest in the Jeronimos Monastery in Belem. The cenotaph here is symbolic. Also here: Amalia Rodrigues, who transformed fado from a neighbourhood music into a global art form. Born in 1920, she performed for 50 years, sold millions of records worldwide and was the first Portuguese performer to achieve true international fame. She died in 1999 and was given a state funeral. Portugal declared three days of national mourning.",
+    tip:'"This building took 284 years to finish. The Portuguese have a saying for any never-ending project: obras de Santa Engracia — the works of Santa Engracia."'},
+   de:{name:'Panteao Nacional',subtitle:"Portugals Pantheon — hier ruhen die Helden",
+    story:"Das Nationale Pantheon brauchte 284 Jahre Bauzeit — das gab dem Ausdruck 'obras de Santa Engracia' den Ursprung: ein endloses, nie fertiges Projekt. Hier die Kenotaphe von Vasco da Gama, Pedro Alvares Cabral, Camoes und Fado-Legende Amalia Rodrigues.",
+    longStory:"Wer war Vasco da Gama und warum ist er bedeutend? 1497 verliess er Lissabon mit vier Schiffen und 170 Mann. Zwei Jahre spater kehrte er als erster Europaer zuruck, der ganz Afrika umrundet und Indien auf dem Seeweg erreicht hatte. Dieser eine Voyage veranderte die Weltgeschichte: Der Gewurzhandel, jahrhundertelang von arabischen und venezianischen Zwischenhandlern kontrolliert, war nun offen fur Portugal. Lissabon wurde fast uber Nacht die reichste Stadt Europas. Aber da Gama war kein sanfter Entdecker: Auf seiner zweiten Indienreise 1502 kaperte er ein Schiff mit 400 muslimischen Pilgern, sperrte sie ein und verbrannte das Schiff. Dieses Verbrechen wurde von Zeugen dokumentiert. Er starb 1524 in Indien an Malaria. Auch hier: Amalia Rodrigues, die Fado von einer Nachbarschaftsmusik zu einer globalen Kunstform machte. Sie wurde 1920 geboren, trat 50 Jahre auf und war die erste portugiesische Kunstlerin mit echter internationaler Bekanntheit. Portugal erklarte nach ihrem Tod 1999 drei Tage Staatstrauer.",
+    tip:'"Dieses Gebaude brauchte 284 Jahre bis zur Fertigstellung. Die Portugiesen sagen bei jedem endlosen Projekt: obras de Santa Engracia."'}},
+
+  {id:'stv_fora',lat:38.7155,lon:-9.1278,
+   mapsSearch:'Igreja de Sao Vicente de Fora Lisboa',
+   tour:7,cat:'church',tags:['Royal Tombs','Braganza Dynasty','Azulejos','La Fontaine'],
+   en:{name:'Igreja de Sao Vicente de Fora',subtitle:'Royal crypt — every Portuguese king since 1640',
+    story:'Built just outside the old city walls in the 16th century — the name means "Saint Vincent outside the walls." Inside: the royal pantheon with tombs of every king and queen of the Braganza dynasty from 1640 to 1910. The azulejo tile panels in the cloister, depicting the fables of La Fontaine, are among the finest in Lisbon.'},
+   de:{name:'Igreja de Sao Vicente de Fora',subtitle:'Konigliche Gruft — jeder portugiesische Konig seit 1640',
+    story:'Im 16. Jahrhundert ausserhalb der alten Stadtmauern gebaut — der Name bedeutet "Sankt Vinzenz ausserhalb der Mauern". Innen das Konigliche Pantheon mit Grabern jedes Konigs und jeder Konigin des Hauses Braganca von 1640 bis 1910. Die Azulejo-Panels im Kreuzgang — Fabeln von La Fontaine — gehoren zu den schonsten in Lissabon.'}},
+
+  {id:'sta_luzia',lat:38.7109,lon:-9.1316,
+   mapsSearch:'Miradouro de Santa Luzia Lisboa Alfama',
+   tour:5,cat:'viewpoint',tags:['Azulejos','1755 Before & After','Alfama','Postcard View','Wisteria'],
+   en:{name:'Miradouro de Santa Luzia',subtitle:'The postcard view of Lisbon',
+    story:'Perhaps the most photogenic viewpoint in Lisbon. The terrace walls are covered in an azulejo panel depicting Praca do Comercio as it looked before the 1755 earthquake — showing exactly what was lost. Below: the red-tiled rooftops of Alfama tumbling toward the Tagus. Wisteria climbs the iron railings in spring and summer.'},
+   de:{name:'Miradouro de Santa Luzia',subtitle:'Das Postkarten-Bild Lissabons',
+    story:'Vielleicht der fotogenste Aussichtspunkt Lissabons. Die Terrassenmauern sind mit einem Azulejo-Panel bedeckt, das den Praca do Comercio vor dem Erdbeben 1755 zeigt — genau das, was verloren ging. Darunter die ziegelroten Dacher von Alfama bis zum Tejo. Im Fruhling klettert Glyzinie an den Eisengerandern.'}},
+
+  {id:'baixa',lat:38.7105,lon:-9.1380,
+   mapsSearch:'Baixa Pombalina Lisboa Rua Augusta',
+   tour:3,cat:'history',tags:['Marquis of Pombal','Earthquake Engineering','18th Century','Grid City','Pombaline Cage'],
+   en:{name:'Baixa Pombalina',subtitle:"World's first earthquake-proof city district",
+    story:"After 1755, the Marquis of Pombal rebuilt the entire lower city in a perfect grid using earthquake-resistant construction: flexible wooden frames inside stone facades, called the 'gaiola pombalina' — the Pombaline cage. He tested the design by having soldiers march around the new buildings to simulate tremors. This was revolutionary Enlightenment urban planning.",
+    tip:'Walking Rua Augusta toward the arch is the classic Lisbon straight shot. Point out that every cross-street runs perfectly parallel.'},
+   de:{name:'Baixa Pombalina',subtitle:"Welterstes erdbebensicheres Stadtviertel",
+    story:"Nach 1755 baute der Marquis de Pombal die Unterstadt in einem perfekten Raster mit erdbebensicherem Bau: flexible Holzrahmen in Steinfassaden, die 'gaiola pombalina' — der Pombalinische Kafig. Getestet durch marschierende Soldaten. Das war revolutionare aufgeklarte Stadtplanung.",
+    tip:'Die Rua Augusta zum Bogen ist der klassische Lissaboner Geradeschuss. Zeigen Sie, dass jede Querstrasse perfekt parallel verlauft.'}},
+
+  {id:'stjusta',lat:38.7116,lon:-9.1401,
+   mapsSearch:'Elevador de Santa Justa Lisboa',
+   tour:0,cat:'gem',tags:['Hidden Tip','1902','Eiffel Student','Best Local Secret','Skip the Queue'],
+   en:{name:'Santa Justa Elevator — Local Tip',subtitle:'Skip the 20-minute queue. Here\'s how.',
+    story:"The Santa Justa Elevator was built in 1902 by Raoul Mesnier du Ponsard, a Portuguese-born student of Gustave Eiffel — you can see the iron filigree style. It connects Baixa with Chiado. Every tourist queues 20-30 minutes to ride it. Every local uses the hidden staircase behind the blue sign nearby, reaching the same level in 3 minutes.",
+    tip:'"Locals never wait for the elevator. Follow me." Show them the stairs. You will become their favourite person in Lisbon.'},
+   de:{name:'Santa-Justa-Aufzug — Einheimischen-Tipp',subtitle:'Uberspringen Sie die 20-Minuten-Schlange.',
+    story:"Der Santa-Justa-Aufzug wurde 1902 von Raoul Mesnier du Ponsard gebaut — einem Schuler von Gustave Eiffel. Jeder Tourist steht 20-30 Minuten in der Schlange. Jeder Einheimische nutzt die versteckte Treppe hinter dem blauen Schild und erreicht dasselbe Niveau in 3 Minuten.",
+    tip:'"Einheimische warten nie auf den Aufzug. Folgen Sie mir." Zeigen Sie die Treppe — Sie werden deren Lieblingsmensch.'}},
+
+  {id:'chiado',lat:38.7100,lon:-9.1415,
+   mapsSearch:'Chiado Lisboa Largo do Chiado',
+   tour:5,cat:'culture',tags:['Literary Lisbon','Cafe Culture','Architecture','Alvaro Siza'],
+   en:{name:'Chiado',subtitle:'Literary Lisbon — poets, cafes and bookshops',
+    story:"Chiado is the intellectual soul of Lisbon. For centuries writers, poets, artists and revolutionaries gathered here. Fernando Pessoa wrote here. The 1988 Chiado fire destroyed much of the neighbourhood; architect Alvaro Siza Vieira led the reconstruction with extraordinary care. Today luxury boutiques mix with ancient bookshops and art galleries."},
+   de:{name:'Chiado',subtitle:'Literarisches Lissabon — Dichter, Cafes und Buchhandlungen',
+    story:"Chiado ist die intellektuelle Seele Lissabons. Jahrhundertelang versammelten sich hier Schriftsteller, Dichter und Revolutionare. Das Chiado-Feuer 1988 zerstorte viel; Architekt Alvaro Siza Vieira leitete den Wiederaufbau. Heute mischen sich Luxusboutiquen mit alten Buchhandlungen und Galerien."}},
+
+  {id:'bertrand',lat:38.7108,lon:-9.1421,
+   mapsSearch:"Livraria Bertrand Chiado Lisboa Rua Garrett",
+   tour:0,cat:'gem',tags:["World's Oldest Bookshop",'1732','Guinness Record','Fernando Pessoa'],
+   en:{name:'Livraria Bertrand',subtitle:"World's oldest bookshop — founded 1732",
+    story:"Livraria Bertrand opened in 1732 and has been selling books continuously ever since — officially the oldest operating bookshop in the world, certified by Guinness. It survived the 1755 earthquake, the Napoleonic invasions, civil wars, a dictatorship and the 1988 Chiado fire. Fernando Pessoa was a regular. It still smells of old paper and coffee.",
+    tip:'"Two streets from here is the oldest bookshop in the world — founded 1732, older than the United States. Still open."'},
+   de:{name:'Livraria Bertrand',subtitle:'Alteste Buchhandlung der Welt — gegrundet 1732',
+    story:"Die Livraria Bertrand offnete 1732 und verkauft seitdem ununterbrochen Bucher — offiziell die alteste noch tatige Buchhandlung der Welt. Sie uberlebte das Erdbeben 1755, napoleonische Invasionen, Burgerkriege, eine Diktatur und das Chiado-Feuer 1988. Fernando Pessoa war Stammgast.",
+    tip:'"Zwei Strassen von hier: die alteste Buchhandlung der Welt — gegrundet 1732, alter als die Vereinigten Staaten. Noch geoffnet."'}},
+
+  {id:'elyfant',lat:38.7077,lon:-9.1421,
+   mapsSearch:'Delirium Cafe Lisboa Calcada Nova de Sao Francisco',
+   tour:0,cat:'gem',tags:['2000+ Beers','Calcada Nova de Sao Francisco','Guinness World Record','Belgian Beer'],
+   en:{name:'Delirium Cafe Lisboa',subtitle:'2000+ beers. Guinness World Record.',
+    story:"Delirium Cafe is one of the most famous beer bars in the world — the original Brussels location holds a Guinness World Record for the most beers available. The Lisbon location is at Calcada Nova de Sao Francisco 2A, near Cais do Sodre. Over 2000 beers from dozens of countries — Austrian, German, Belgian and beyond.",
+    tip:'Perfect closing tip for German and Austrian tourists: "I know a bar near here with over 2000 beers including beers from your country — it holds a Guinness World Record." Works every time.'},
+   de:{name:'Delirium Cafe Lisboa',subtitle:'2000+ Biere. Guinness-Weltrekord.',
+    story:"Das Delirium Cafe ist eine der beruhmtesten Bierbars der Welt — das Original in Brussel halt einen Guinness-Weltrekord. Die Lissaboner Filiale liegt in der Calcada Nova de Sao Francisco 2A, nahe Cais do Sodre. Uber 2000 Biere aus Dutzenden Landern — osterreichische, deutsche, belgische und mehr.",
+    tip:'Perfekter Abschlusstipp: "Ich kenne eine Bar hier in der Nahe mit uber 2000 Bieren — auch aus Ihrem Land. Sie halt sogar einen Guinness-Weltrekord." Funktioniert jedes Mal.'}},
+
+  {id:'fado_museum',lat:38.7083,lon:-9.1297,
+   mapsSearch:'Museu do Fado Lisboa Alfama Largo do Chafariz de Dentro',
+   tour:0,cat:'culture',tags:['Fado','UNESCO','Saudade','Alfama','World Heritage'],
+   en:{name:'Museu do Fado',subtitle:'The sound of Lisbon — UNESCO heritage since 2011',
+    story:"Fado means fate or destiny in Portuguese. Born in the early 19th century among the working-class communities of Alfama, fado is the sound of saudade: a bittersweet longing for something beautiful that is lost or absent. There is no direct translation of saudade into any other language. UNESCO declared fado a World Intangible Cultural Heritage in 2011."},
+   de:{name:'Museu do Fado',subtitle:'Der Klang Lissabons — UNESCO-Erbe seit 2011',
+    story:"Fado bedeutet Schicksal oder Bestimmung auf Portugiesisch. Im fruhen 19. Jahrhundert in den Arbeitervierteln von Alfama geboren, ist Fado der Klang der Saudade: eine bitterstisse Sehnsucht nach etwas Schones, das verloren ist. Es gibt keine direkte Ubersetzung von Saudade in eine andere Sprache. Die UNESCO erklarte Fado 2011 zum immateriellen Kulturerbe."}},
+
+  {id:'mouraria',lat:38.7160,lon:-9.1357,
+   mapsSearch:'Mouraria Lisboa Rua do Capelao',
+   tour:0,cat:'culture',tags:['Moorish Quarter','1147','Fado Birthplace','Multiculturalism','Salazar'],
+   en:{name:'Mouraria — The Moorish Quarter',subtitle:"Where fado was born, where Lisbon's soul lives",
+    story:"After the 1147 conquest, the Moors were not expelled — they were relocated just outside the castle walls to this quarter called Mouraria. They lived here for centuries alongside Jewish, African and later Asian communities. This multicultural mix gave birth to fado in the 19th century. The neighbourhood was partially demolished in the 1930s by the Salazar dictatorship, which feared its diversity."},
+   de:{name:'Mouraria — Das maurische Viertel',subtitle:"Wo Fado geboren wurde, wo Lissabons Seele lebt",
+    story:"Nach der Eroberung 1147 wurden die Mauren nicht vertrieben — sie siedelten direkt ausserhalb der Burgmauern in dieses Viertel namens Mouraria. Sie lebten hier jahrhundertelang neben judischen, afrikanischen und asiatischen Gemeinschaften. Diese multikulturelle Mischung gebar den Fado im 19. Jahrhundert. Das Viertel wurde in den 1930er Jahren von der Salazar-Diktatur, die seine Vielfalt furchtete, teilweise abgerissen."}},
+
+  {id:'martim_moniz',lat:38.7162,lon:-9.1368,
+   mapsSearch:'Praca Martim Moniz Lisboa',
+   tour:0,cat:'culture',tags:['Multiculturalism','Mouraria','Food Market','1147','Martim Moniz'],
+   en:{name:'Martim Moniz Square',subtitle:'Where East meets West in Lisbon',
+    story:"Named after a knight who died holding open the city gates in 1147 to allow the conquering army inside, the square today is home to Asian, African and Middle Eastern communities. The food market has vendors from China, Cape Verde, India, Bangladesh — a miniature version of the cosmopolitan city Lisbon has always been."},
+   de:{name:'Martim Moniz Platz',subtitle:'Wo Ost auf West trifft in Lissabon',
+    story:"Benannt nach einem Ritter, der 1147 die Stadttore offen hielt, damit die Armee eindringen konnte, beherbergt der Platz heute asiatische, afrikanische und nanostliche Gemeinschaften. Der Lebensmittelmarkt hat Handler aus China, Kap Verde, Indien, Bangladesch — eine Miniaturversion der weltoffenen Stadt, die Lissabon immer war."}},
+
+  {id:'intendente',lat:38.7193,lon:-9.1362,
+   mapsSearch:'Praca do Intendente Lisboa',
+   tour:0,cat:'gem',tags:['Hidden Square','Creative Lisbon','Local Life','Farmacia Antiga'],
+   en:{name:'Intendente Square',subtitle:"Lisbon's most authentic square",
+    story:"Praca do Intendente is a secret that Lisbon's creative community is slowly revealing. A decade ago it was rough and neglected. Today it is the city's most interesting square: tiled facades, a beautiful 19th-century pharmacy, cafe terraces and a diverse neighbourhood mixing old Lisbon with creative businesses. Almost no tour guide brings tourists here.",
+    tip:'Mention as evening destination: "If you want to eat where locals eat — not tourists — go to Intendente tonight."'},
+   de:{name:'Intendente-Platz',subtitle:'Lissabons authentischster Platz',
+    story:"Der Praca do Intendente ist ein Geheimnis, das Lissabons Kreativgemeinschaft langsam enthullt. Vor einem Jahrzehnt rau und vernachlassigt — heute der interessanteste Platz der Stadt: Kachelfassaden, schone Apotheke aus dem 19. Jahrhundert, Cafe-Terrassen.",
+    tip:'Als Abendziel: "Wenn Sie dort essen wollen, wo Einheimische essen — gehen Sie heute Abend nach Intendente."'}},
+
+  {id:'elevgloria',lat:38.7160,lon:-9.1425,
+   mapsSearch:'Elevador da Gloria Lisboa Restauradores',
+   tour:0,cat:'culture',tags:['1885','Funicular','Lisbon Icon','Tram 28'],
+   en:{name:'Elevador da Gloria',subtitle:'The oldest funicular in Lisbon — since 1885',
+    story:"The Elevador da Gloria has been climbing the hill between Restauradores and Sao Pedro de Alcantara since 1885 — one of the oldest funiculars in continuous operation in the world. The yellow cars are as much a symbol of Lisbon as Tram 28. The 2-minute ride deposits you at Sao Pedro de Alcantara viewpoint."},
+   de:{name:'Elevador da Gloria',subtitle:'Die alteste Standseilbahn Lissabons — seit 1885',
+    story:"Der Elevador da Gloria fahrt seit 1885 den Hugel zwischen Restauradores und Sao Pedro de Alcantara hinauf — eine der altesten noch betriebenen Standseilbahnen weltweit. Die gelben Wagen sind ein Symbol Lissabons wie die Tram 28. Die 2-Minuten-Fahrt bringt Sie direkt zum Aussichtspunkt."}},
+];
+
+// ── ENGINE ────────────────────────────────────────────────────────────────────
+let lang = 'en';
+let currentTour = 0;
+let currentCat = 'all';
+let openStopId = null;
+let longStoryOpen = false;
+let activeMarkers = {};
+let routeLayers = [];
+const stopIndex = {};
+STOPS.forEach(s => stopIndex[s.id] = s);
+
+function dotColor(s){
+  if(s.cat==='gem') return '#27AE8F';
+  if(s.cat==='viewpoint') return '#8E44AD';
+  if(s.cat==='church') return '#E07B39';
+  if(s.cat==='culture') return '#2980B9';
+  const tc = {3:'#C9A84C',5:'#E07B39',7:'#C0392B',0:'#2980B9'};
+  return tc[s.tour] || '#7f9ab5';
+}
+
+function makeIcon(s){
+  const c = dotColor(s), isCore = s.tour<=3&&s.tour>0;
+  const r = isCore?9:7, total=r*2+8, cx=total/2;
+  const inner = s.tour===3?'<circle cx="'+cx+'" cy="'+cx+'" r="3" fill="white" opacity="0.9"/>':'';
+  const glow  = isCore?'<circle cx="'+cx+'" cy="'+cx+'" r="'+(r+3)+'" fill="'+c+'" opacity="0.15"/>':'';
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'+total+'" height="'+total+'">'+glow+'<circle cx="'+cx+'" cy="'+cx+'" r="'+r+'" fill="'+c+'" stroke="white" stroke-width="1.5"/>'+inner+'</svg>';
+  return L.divIcon({html:svg,iconSize:[total,total],iconAnchor:[cx,cx],popupAnchor:[0,-r-4],className:''});
+}
+
+function snip(text,n){n=n||88;return text&&text.length>n?text.slice(0,n)+'...':text}
+
+function popHtml(s){
+  const d=s[lang], c=dotColor(s);
+  const cl=UI[lang].catLabels[s.cat]||s.cat;
+  return '<div class="pop"><div class="pop-cat" style="background:'+c+'22;color:'+c+'">'+cl+'</div><div class="pop-name">'+d.name+'</div><div class="pop-snippet">'+snip(d.story)+'</div><div class="pop-more" onclick="openPanel(\''+s.id+'\')">'+UI[lang].readMore+'</div></div>';
+}
+
+const map = L.map('map',{zoomControl:true,scrollWheelZoom:true}).setView([38.7120,-9.1390],15);
+map.zoomControl.setPosition('topleft');
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19,subdomains:'abcd'
+}).addTo(map);
+
+function addMarker(s){
+  if(activeMarkers[s.id]) return;
+  const m=L.marker([s.lat,s.lon],{icon:makeIcon(s)}).addTo(map);
+  m.bindPopup(popHtml(s),{maxWidth:240,closeButton:false});
+  m.on('click',function(){setTimeout(function(){openPanel(s.id)},120)});
+  activeMarkers[s.id]=m;
+}
+function removeMarker(id){
+  if(activeMarkers[id]){map.removeLayer(activeMarkers[id]);delete activeMarkers[id]}
+}
+function renderMarkers(){
+  STOPS.forEach(function(s){
+    const tourOk=currentTour===0||s.tour<=currentTour||s.tour===0;
+    const catOk=currentCat==='all'||s.cat===currentCat;
+    if(tourOk&&catOk) addMarker(s); else removeMarker(s.id);
+  });
+  Object.values(activeMarkers).forEach(function(m){
+    const s=STOPS.find(function(st){return m.getLatLng().lat===st.lat&&m.getLatLng().lng===st.lon});
+    if(s) m.setPopupContent(popHtml(s));
+  });
+}
+
+function drawRoutes(tour){
+  routeLayers.forEach(function(l){map.removeLayer(l)});routeLayers=[];
+  if(tour===0||tour>=3){
+    var r3=[[38.7075,-9.1364],[38.7105,-9.1380],[38.7109,-9.1316],[38.7109,-9.1316],[38.7117,-9.1319],[38.7120,-9.1312],[38.7139,-9.1332],[38.7205,-9.1393],[38.7139,-9.1393],[38.7075,-9.1364]];
+    routeLayers.push(L.polyline(r3,{color:'#C9A84C',weight:3.5,opacity:0.92}).addTo(map));
+  }
+  if(tour===0||tour>=5){
+    var r5=[[38.7139,-9.1393],[38.7156,-9.1423],[38.7142,-9.1438],[38.7153,-9.1430],[38.7100,-9.1415],[38.7126,-9.1408],[38.7073,-9.1468],[38.7075,-9.1364]];
+    routeLayers.push(L.polyline(r5,{color:'#E07B39',weight:3,opacity:0.88,dashArray:'10,6'}).addTo(map));
+  }
+  if(tour===0||tour>=7){
+    var r7=[[38.7139,-9.1332],[38.7168,-9.1337],[38.7170,-9.1327],[38.7205,-9.1393],[38.7162,-9.1368],[38.7148,-9.1269],[38.7155,-9.1278],[38.7120,-9.1312]];
+    routeLayers.push(L.polyline(r7,{color:'#C0392B',weight:2.8,opacity:0.85,dashArray:'6,5'}).addTo(map));
+  }
+}
+
+function openPanel(id){
+  const s=stopIndex[id]; if(!s) return;
+  const d=s[lang], c=dotColor(s);
+  openStopId=id; longStoryOpen=false;
+  document.getElementById('panel-category').textContent=UI[lang].catLabels[s.cat]||s.cat;
+  document.getElementById('panel-category').style.cssText='background:'+c+'22;color:'+c;
+  document.getElementById('panel-name').textContent=d.name;
+  document.getElementById('panel-subtitle').textContent=d.subtitle||'';
+  document.getElementById('panel-story').textContent=d.story||'';
+  // long story
+  var ls=document.getElementById('long-story');
+  var eb=document.getElementById('expand-btn');
+  var sep=document.getElementById('long-story-sep');
+  ls.textContent=''; ls.classList.remove('open'); sep.classList.remove('open');
+  if(d.longStory){
+    ls.textContent=d.longStory;
+    eb.textContent=UI[lang].expandBtn;
+    eb.classList.add('visible');
+  } else {
+    eb.classList.remove('visible');
+  }
+  // tags
+  var tagsEl=document.getElementById('panel-tags');
+  tagsEl.innerHTML=(s.tags||[]).map(function(t){return '<span class="panel-tag" style="background:'+c+'18;color:'+c+';border:1px solid '+c+'44">'+t+'</span>'}).join('');
+  // tip
+  var tipEl=document.getElementById('panel-tip');
+  if(d.tip){tipEl.textContent=UI[lang].guideTip+d.tip;tipEl.classList.add('show')}
+  else tipEl.classList.remove('show');
+  // maps link — use name/address search, not raw coords
+  var mapsUrl='https://www.google.com/maps/search/?q='+encodeURIComponent(s.mapsSearch||d.name+' Lisboa');
+  document.getElementById('panel-maps').href=mapsUrl;
+  document.getElementById('panel-maps').textContent=UI[lang].mapsBtn;
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('panel-body').scrollTop=0;
+  map.panTo([s.lat,s.lon],{animate:true,duration:0.5});
+}
+
+function toggleLongStory(){
+  longStoryOpen=!longStoryOpen;
+  var ls=document.getElementById('long-story');
+  var eb=document.getElementById('expand-btn');
+  var sep=document.getElementById('long-story-sep');
+  if(longStoryOpen){
+    ls.classList.add('open'); sep.classList.add('open');
+    sep.textContent=UI[lang].longStoryLabel;
+    eb.textContent=UI[lang].collapseBtn;
+    setTimeout(function(){ls.scrollIntoView({behavior:'smooth',block:'nearest'})},50);
+  } else {
+    ls.classList.remove('open'); sep.classList.remove('open');
+    eb.textContent=UI[lang].expandBtn;
+  }
+}
+
+function closePanel(){
+  document.getElementById('panel').classList.remove('open');
+  openStopId=null;
+}
+
+function setLang(l,btn){
+  lang=l;
+  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  document.getElementById('hdr-sub').textContent=UI[l].hdrSub;
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var key=el.getAttribute('data-i18n');
+    if(UI[l][key]) el.textContent=UI[l][key];
+  });
+  var catKeys=['catAll','catView','catHist','catChurch','catGem','catCult'];
+  document.querySelectorAll('.cat-btn').forEach(function(btn,i){
+    if(catKeys[i]) btn.textContent=UI[l][catKeys[i]];
+  });
+  renderMarkers();
+  if(openStopId) openPanel(openStopId);
+}
+
+function showTour(n,btn){
+  currentTour=n;
+  document.querySelectorAll('.tbadge').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  renderMarkers(); drawRoutes(n);
+  var bounds={0:[[38.703,-9.150],[38.723,-9.125]],3:[[38.705,-9.142],[38.723,-9.126]],5:[[38.703,-9.150],[38.720,-9.128]],7:[[38.703,-9.150],[38.723,-9.125]]};
+  map.flyToBounds(bounds[n]||bounds[0],{padding:[70,70],duration:1.2});
+}
+function toggleCat(cat,btn){
+  currentCat=cat;
+  document.querySelectorAll('.cat-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  renderMarkers();
+}
+
+renderMarkers();
+drawRoutes(0);
+setTimeout(function(){map.invalidateSize()},150);
+window.addEventListener('resize',function(){map.invalidateSize()});
+</script>
+</body>
+</html>
