@@ -40,6 +40,8 @@ html,body{height:100%;font-family:'Lato',sans-serif;background:var(--navy);color
 .hr2{display:flex;gap:5px;flex-wrap:wrap}
 .cat-btn{font-size:9px;padding:2px 9px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);cursor:pointer;transition:all 0.18s;background:transparent;font-family:'Lato',sans-serif}
 .cat-btn.active{border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.08)}
+#gps-header-btn{font-size:9px;padding:2px 10px;border-radius:12px;border:1.5px solid var(--blue);color:var(--blue);cursor:pointer;background:transparent;font-family:'Lato',sans-serif;font-weight:700;transition:all 0.2s}
+#gps-header-btn.active{background:rgba(41,128,185,0.2);border-color:var(--teal);color:var(--teal)}
 #guide-btn{font-size:9px;padding:2px 10px;border-radius:12px;border:1.5px solid var(--teal);color:var(--teal);cursor:pointer;background:transparent;font-family:'Lato',sans-serif;font-weight:700;transition:all 0.2s}
 #guide-btn.active{background:var(--teal);color:var(--navy)}
 
@@ -123,6 +125,11 @@ html,body{height:100%;font-family:'Lato',sans-serif;background:var(--navy);color
   min-height:60px;
 }
 #map{position:absolute;top:0;left:0;right:0;bottom:0}
+#panel-photo{margin:0 0 10px 0;border-radius:6px;overflow:hidden;max-height:160px;background:rgba(255,255,255,0.04)}
+#panel-photo img{width:100%;height:160px;object-fit:cover;display:block;opacity:0;transition:opacity 0.3s}
+#panel-photo img.loaded{opacity:1}
+#panel-photo .photo-credit{font-size:8px;color:var(--muted);padding:2px 6px;background:rgba(0,0,0,0.5);position:absolute;bottom:0;right:0}
+#panel-photo{position:relative}
 .leaflet-container{background:#071520}
 @keyframes pulse-ring{0%{transform:scale(0.9);opacity:1}70%{transform:scale(1.4);opacity:0.4}100%{transform:scale(1.6);opacity:0}}
 
@@ -216,7 +223,7 @@ html,body{height:100%;font-family:'Lato',sans-serif;background:var(--navy);color
     <button class="cat-btn" onclick="toggleCat('gem',this)" data-i18n="catGem">&#128142; Gems</button>
     <button class="cat-btn" onclick="toggleCat('culture',this)" data-i18n="catCult">&#127914; Culture</button>
     <button class="cat-btn" onclick="toggleCat('food',this)" data-i18n="catFood">&#127829; Food</button>
-    <button id="guide-btn" onclick="toggleGuideMode(this)" data-i18n="guideMode">&#9654; Guide Mode</button>
+    <button id="gps-header-btn" onclick="locateMe()" title="Show my location">&#9650; GPS</button> <button id="guide-btn" onclick="toggleGuideMode(this)" data-i18n="guideMode">&#9654; Guide Mode</button>
   </div>
 </div>
 
@@ -281,13 +288,13 @@ const STOPS = [
   {id:'sroque',lat:38.7142,lon:-9.1438,mapsSearch:'Igreja de Sao Roque Lisboa',tour:5,cat:'church',foodType:undefined,tags:['Jesuits','Baroque','Chapel of St John','Sao Roque Hill','Gold Leaf'],
    en:{name:'Igreja de Sao Roque',subtitle:'Plain outside. Extraordinary inside.',story:'The Jesuits built Sao Roque in the 16th century with deliberate strategy: look plain outside, shock inside. Eight side chapels compete in extravagance — gold leaf, Italian marble, azulejo tiles. One chapel was built entirely in Rome, blessed by the Pope, disassembled, and shipped to Lisbon piece by piece.',longStory:undefined,tip:'"This church looks completely ordinary from outside. Want to see what the Jesuits were hiding inside?"'},
    de:{name:'Igreja de Sao Roque',subtitle:'Schlicht aussen. Aussergewohnlich innen.',story:'Die Jesuiten bauten Sao Roque mit Absicht schlicht — um innen zu schocken. Acht Seitenkapellen wetteifern in Pracht. Eine wurde komplett in Rom gebaut, vom Papst gesegnet, zerlegt und nach Lissabon verschifft.',longStory:undefined,tip:'"Diese Kirche sieht vollig gewohnlich aus. Wollen Sie sehen, was die Jesuiten versteckt haben?"'}},
-  {id:'alcantara_view',lat:38.7153,lon:-9.143,mapsSearch:'Miradouro de Sao Pedro de Alcantara Lisboa',tour:5,cat:'viewpoint',foodType:undefined,tags:['Castle View','Fernando Pessoa','Two Powers','Sao Roque Hill','Garden Viewpoint'],
+  {id:'alcantara_view',lat:38.7151,lon:-9.1432,mapsSearch:'Miradouro de Sao Pedro de Alcantara Lisboa',tour:5,cat:'viewpoint',foodType:undefined,tags:['Castle View','Fernando Pessoa','Two Powers','Sao Roque Hill','Garden Viewpoint'],
    en:{name:'Miradouro Sao Pedro de Alcantara',subtitle:'Two hills facing each other across history',story:'Look east: directly across, at the same height, Sao Jorge Castle sits on its hill. Two hills facing each other — one for the church, one for the king. Fernando Pessoa wandered these streets for decades. His statue sits in a cafe two streets from here — he ordered the same table, the same coffee, every day for decades.',longStory:undefined,tip:'Photo stop. "Two hills, two powers — that is the story of Lisbon."'},
    de:{name:'Miradouro Sao Pedro de Alcantara',subtitle:'Zwei Hugel, die sich uber die Geschichte ansehen',story:'Schauen Sie nach Osten: das Castelo Sao Jorge auf gleichem Niveau. Zwei Hugel, die sich ansehen — einer fur die Kirche, einer fur den Konig. Fernando Pessoa streifte jahrzehntelang durch diese Strassen.',longStory:undefined,tip:'"Zwei Hugel, zwei Machte — das ist die Geschichte Lissabons."'}},
   {id:'carmo',lat:38.7126,lon:-9.1408,mapsSearch:'Convento do Carmo Lisboa Museu Arqueologico',tour:5,cat:'history',foodType:undefined,tags:['1755 Earthquake','Pombal','Gothic','Memorial','Chagas Hill'],
    en:{name:'Convento do Carmo',subtitle:'Destroyed 1755 — left open as a memorial forever',story:'November 1st, 1755 — All Saints Day — the ground shook for 9 minutes while the city was at church. Tsunami. Fire for five days. 60,000 dead. This was Lisbon\'s greatest Gothic church. The Marquis of Pombal left the ruins open to the sky as a permanent memorial. 270 years later, they are still open.',longStory:'The 1755 earthquake struck at 9:40am, magnitude estimated 8.5 to 9. Three tsunami waves followed, the largest 6 metres. Then fire for five days. 60,000 dead — one in four of the entire population. Voltaire wrote Candide partly in response, mocking the idea we live in "the best of all possible worlds." The debate between faith and reason was never the same after Lisbon 1755.',tip:'Pause here. Let the silence work. "Pombal could have rebuilt it. He chose not to."'},
    de:{name:'Convento do Carmo',subtitle:'Zerstort 1755 — als Mahnmal fur immer offen',story:'1. November 1755 — Allerheiligen — bebte die Erde 9 Minuten. Tsunami. Funf Tage Feuer. 60.000 Tote. Dies war Lissabons grosste gotische Kirche. Pombal liess die Ruinen fur immer offen als Mahnmal.',longStory:'Das Erdbeben von 1755 traf um 9:40 Uhr, Magnitude 8,5 bis 9. Drei Tsunamiwellen folgten. 60.000 Tote — jeder vierte Einwohner. Voltaire schrieb Candide teilweise als Reaktion. Die Debatte zwischen Glaube und Vernunft war danach nie mehr dieselbe.',tip:'Hier pausieren. Die Stille wirken lassen. "Pombal hatte es wiederaufbauen konnen. Er entschied sich dagegen."'}},
-  {id:'pessoa',lat:38.7107,lon:-9.1421,mapsSearch:'A Brasileira Cafe Fernando Pessoa Chiado Lisboa',tour:5,cat:'culture',foodType:undefined,tags:['Fernando Pessoa','A Brasileira','Literature','Heteronyms','Chiado'],
+  {id:'pessoa',lat:38.7107,lon:-9.1419,mapsSearch:'A Brasileira Cafe Fernando Pessoa Chiado Lisboa',tour:5,cat:'culture',foodType:undefined,tags:['Fernando Pessoa','A Brasileira','Literature','Heteronyms','Chiado'],
    en:{name:'A Brasileira & Fernando Pessoa',subtitle:'Portugal\'s greatest poet — sat here every day',story:'Fernando Pessoa is to Portugal what Shakespeare is to England. He wrote under four different names — heteronyms, each with their own biography. When he died in 1935, a trunk was found with 27,543 unpublished manuscripts.',longStory:'Born 1888, educated in English in Durban, South Africa. Returned to Lisbon at 17 speaking better English than Portuguese. Worked as a translator his whole life, unknown as a writer while alive. Created at least 72 fictional authors. Never married — ended his one romance by cold letter. Drank heavily, died of liver cirrhosis at 47. His trunk is still not fully published today.',tip:'"He invented four personalities and published poetry under all of them. Left 27,000 unpublished pages. Died at 47."'},
    de:{name:'A Brasileira & Fernando Pessoa',subtitle:'Portugals grosster Dichter — sass hier jeden Tag',story:'Fernando Pessoa ist fur Portugal, was Shakespeare fur England ist. Er schrieb unter vier verschiedenen Namen — Heteronyme, jeder mit eigener Biographie. Als er 1935 starb, fand man 27.543 unveroffentlichte Manuskripte.',longStory:'1888 in Lissabon geboren, auf Englisch in Durban erzogen. Kehrte mit 17 zuruck. Arbeitete als Ubersetzer — als Dichter unbekannt. Schuf 72 fiktive Autoren. Nie geheiratet. Starb mit 47 an Leberzirrhose. Seine Truhe ist bis heute nicht vollstandig veroffentlicht.',tip:'"Er erfand vier Personlichkeiten und veroffentlichte Gedichte unter allen. Hinterliess 27.000 Seiten. Starb mit 47."'}},
   {id:'camoes_square',lat:38.7101,lon:-9.1422,mapsSearch:'Praca Luis de Camoes Lisboa Chiado',tour:5,cat:'culture',foodType:undefined,tags:['Luis de Camoes','Os Lusiadas','Epic Poet','Chiado','Literary Lisbon'],
@@ -317,28 +324,28 @@ const STOPS = [
   {id:'baixa',lat:38.7105,lon:-9.138,mapsSearch:'Baixa Pombalina Lisboa Rua Augusta',tour:3,cat:'history',foodType:undefined,tags:['Pombal','Earthquake Engineering','18th Century','Grid City','Pombaline Cage'],
    en:{name:'Baixa Pombalina',subtitle:'World\'s first earthquake-proof city district',story:'After 1755, Pombal rebuilt the lower city in a perfect grid using the gaiola pombalina — flexible wooden frames inside stone facades, tested by marching soldiers around the buildings. The world\'s first earthquake-resistant urban construction system, 200 years ahead of its time.',longStory:undefined,tip:undefined},
    de:{name:'Baixa Pombalina',subtitle:'Welterstes erdbebensicheres Stadtviertel',story:'Nach 1755 baute Pombal die Unterstadt im perfekten Raster mit der gaiola pombalina — flexible Holzrahmen in Steinfassaden, getestet durch marschierende Soldaten.',longStory:undefined,tip:undefined}},
-  {id:'pink_street',lat:38.7074,lon:-9.1443,mapsSearch:'Rua Nova do Carvalho Pink Street Lisboa Cais do Sodre',tour:0,cat:'culture',foodType:undefined,tags:['Pink Street','Nightlife','Cais do Sodre','Instagram','Bar Street'],
+  {id:'pink_street',lat:38.7072,lon:-9.1444,mapsSearch:'Rua Nova do Carvalho Pink Street Lisboa Cais do Sodre',tour:0,cat:'culture',foodType:undefined,tags:['Pink Street','Nightlife','Cais do Sodre','Instagram','Bar Street'],
    en:{name:'Pink Street — Rua Nova do Carvalho',subtitle:'The pink pavement that became a global icon',story:'Rua Nova do Carvalho was for over a century the roughest street in Lisbon — a red-light district full of sailors\' bars and brothels. In 2011 the city painted the pavement pink as part of an urban regeneration project, and it became an instant Instagram sensation. Today it is Lisbon\'s most photographed street and the centre of the Cais do Sodre nightlife district. The character of the bars has changed but the energy has not.',longStory:undefined,tip:'Many tourists specifically ask for Pink Street. It is 3 minutes from Adamastor. Good add-on or closing point for the 5-hills tour.'},
    de:{name:'Pink Street — Rua Nova do Carvalho',subtitle:'Das rosa Pflaster, das ein globales Icon wurde',story:'Die Rua Nova do Carvalho war uber ein Jahrhundert die raueste Strasse Lissabons — ein Rotlichtviertel voller Matrosenbars. 2011 strich die Stadt das Pflaster rosa als Teil eines Stadtentwicklungsprojekts und es wurde sofort zu einem Instagram-Phanomen. Heute ist es Lissabons meistfotografierte Strasse.',longStory:undefined,tip:'Viele Touristen fragen gezielt nach der Pink Street. 3 Minuten vom Adamastor. Guter Zusatz fur die 5-Hugel-Tour.'}},
   {id:'cais_sodre',lat:38.7069,lon:-9.1469,mapsSearch:'Cais do Sodre Lisboa estacao',tour:0,cat:'culture',foodType:undefined,tags:['Cais do Sodre','Ferry Terminal','Time Out Market','Nightlife','Train Station'],
    en:{name:'Cais do Sodre',subtitle:'Where the city meets the river — and the night begins',story:'Cais do Sodre is the beating pulse of Lisbon\'s waterfront. The train station connects the city to Cascais and Estoril along the coast. The ferry terminal sends you across the Tagus to the south bank. The Time Out Market is here. And after dark, the bars of Pink Street and the surrounding streets keep going until sunrise. This is where Lisbon\'s nights end.',longStory:undefined,tip:'Good reference point for giving evening tips. "For tonight: start at Pink Street, end at whatever bar still has music."'},
    de:{name:'Cais do Sodre',subtitle:'Wo die Stadt auf den Fluss trifft — und die Nacht beginnt',story:'Cais do Sodre ist der pulsierende Herzschlag von Lissabons Uferlinie. Der Bahnhof verbindet die Stadt mit Cascais und Estoril. Die Fahre bringt Sie ans Sudufer. Das Time Out Market ist hier. Und nach Einbruch der Dunkelheit laufen die Bars bis zum Sonnenaufgang.',longStory:undefined,tip:'Gut fur Abendtipps. "Fur heute Abend: bei der Pink Street anfangen, bei dem letzten offenen Bar aufhoren."'}},
-  {id:'timeout_market',lat:38.7064,lon:-9.1481,mapsSearch:'Time Out Market Lisboa Mercado da Ribeira',tour:0,cat:'culture',foodType:undefined,tags:['Time Out Market','Food Hall','Local Chefs','Mercado da Ribeira','Best of Lisbon'],
+  {id:'timeout_market',lat:38.7069,lon:-9.1478,mapsSearch:'Time Out Market Lisboa Mercado da Ribeira',tour:0,cat:'culture',foodType:undefined,tags:['Time Out Market','Food Hall','Local Chefs','Mercado da Ribeira','Best of Lisbon'],
    en:{name:'Time Out Market Lisboa',subtitle:'Every great Lisbon chef under one roof',story:'The Time Out Market, inside the historic Mercado da Ribeira (which has been a market since 1892), brings together the best chefs and restaurants of Lisbon under one roof. You can eat Michelin-quality food for €12 standing at a communal table. It opened in 2014 and was the first of its kind in the world — the model that launched a hundred food halls globally. If your group is hungry and cannot agree on a restaurant, this is the answer.',longStory:undefined,tip:'Good for groups that ask "where should we eat tonight?" — a democratic solution where everyone finds something.'},
    de:{name:'Time Out Market Lisboa',subtitle:'Jeder grosse Lissaboner Koch unter einem Dach',story:'Das Time Out Market, im historischen Mercado da Ribeira (seit 1892 ein Markt), vereint die besten Koche und Restaurants Lissabons unter einem Dach. Michelin-Qualitat fur €12 am Stehtisch. Eroffnet 2014 als erstes seiner Art weltweit — das Modell, das hundert Food Halls weltweit startete.',longStory:undefined,tip:'Gut fur Gruppen, die fragen "wo sollen wir heute Abend essen?" — eine demokratische Losung.'}},
-  {id:'bairro_alto',lat:38.713,lon:-9.1465,mapsSearch:'Bairro Alto Lisboa',tour:0,cat:'culture',foodType:undefined,tags:['Nightlife','Fado Bars','Bohemian','17th Century Grid','Party District'],
+  {id:'bairro_alto',lat:38.7131,lon:-9.1468,mapsSearch:'Bairro Alto Lisboa',tour:0,cat:'culture',foodType:undefined,tags:['Nightlife','Fado Bars','Bohemian','17th Century Grid','Party District'],
    en:{name:'Bairro Alto',subtitle:'Lisbon\'s bohemian heart — quiet by day, wild by night',story:'Bairro Alto — the "High Quarter" — was built in the 16th century as an elegant residential district. Today it is Lisbon\'s most famous nightlife neighbourhood: hundreds of bars, fado restaurants and small restaurants packed into a 17th-century grid. By day it is serene and photogenic. By night it becomes one of Europe\'s great party streets, with people spilling onto the cobblestones from around 10pm until 4am. No cover charges — just walk in and out of whatever sounds best.',longStory:undefined,tip:'Good evening tip for younger groups. "No entry fees, no reservations needed. Just walk and follow the music."'},
    de:{name:'Bairro Alto',subtitle:'Lissabons bohmisches Herz — tagsüber ruhig, nachts wild',story:'Bairro Alto — das "Hohe Viertel" — wurde im 16. Jahrhundert als elegantes Wohnviertel gebaut. Heute ist es Lissabons beruhmtestes Nachtleben-Viertel: Hunderte Bars, Fado-Restaurants in einem Raster aus dem 17. Jahrhundert. Abends fullt sich das Kopfsteinpflaster bis 4 Uhr morgens.',longStory:undefined,tip:'Guter Abendtipp fur jungere Gruppen. "Kein Eintritt, keine Reservierung. Einfach laufen und der Musik folgen."'}},
   {id:'principe_real',lat:38.7155,lon:-9.1479,mapsSearch:'Jardim do Principe Real Lisboa',tour:0,cat:'viewpoint',foodType:undefined,tags:['Principe Real','Antique Market','Upscale','Garden','Beautiful Streets'],
    en:{name:'Principe Real & Jardim do Principe Real',subtitle:'The most beautiful neighbourhood in Lisbon',story:'Principe Real is the most refined neighbourhood in Lisbon — wide, tree-lined streets, 19th-century mansions converted to boutique hotels and embassies, independent design shops, wine bars and some of the best restaurants in the city. The garden at the centre has a spectacular 200-year-old cedar tree so wide that its branches are supported by iron pillars. On Saturdays, one of the best antique and design markets in the city sets up around the garden.',longStory:undefined,tip:'Saturday morning: mention the market. Any time: "If you had to live anywhere in Lisbon, this would be the answer."'},
    de:{name:'Principe Real & Jardim do Principe Real',subtitle:'Das schonste Viertel Lissabons',story:'Principe Real ist das raffinierteste Viertel Lissabons — breite, baumgesaumte Strassen, Herrenhausern aus dem 19. Jahrhundert, Boutique-Hotels, unabhangige Designladen. Der Garten in der Mitte hat eine 200-jahrige Zeder, so breit, dass ihre Aste von Eisensaulen gestutzt werden.',longStory:undefined,tip:'Samstags: den Markt erwahnen. "Wenn Sie irgendwo in Lissabon leben mussten, ware dies die Antwort."'}},
-  {id:'av_liberdade',lat:38.7199,lon:-9.1452,mapsSearch:'Avenida da Liberdade Lisboa',tour:0,cat:'culture',foodType:undefined,tags:['Avenida da Liberdade','Luxury Brands','Champs Elysees','1886','Marquis of Pombal'],
+  {id:'av_liberdade',lat:38.7218,lon:-9.1483,mapsSearch:'Avenida da Liberdade Lisboa',tour:0,cat:'culture',foodType:undefined,tags:['Avenida da Liberdade','Luxury Brands','Champs Elysees','1886','Marquis of Pombal'],
    en:{name:'Avenida da Liberdade',subtitle:'Lisbon\'s Champs-Elysees — built for a republic',story:'Avenida da Liberdade was built in 1886, inspired by the Champs-Elysees in Paris, as a symbol of liberal modernity — replacing an older public garden. It runs 1.2km from Restauradores up to Marquis of Pombal square, lined with luxury brands, hotels, cinemas and beautiful mosaic pavement. At the very top, the statue of Pombal watches over everything — his back to the Baixa he built, his face toward the modern city that grew beyond it.',longStory:undefined,tip:'Drive slowly up or down. "Built to look like Paris. Every luxury brand in the world has a shop here — but the best thing is still the pavement."'},
    de:{name:'Avenida da Liberdade',subtitle:'Lissabons Champs-Elysees — fur eine Republik gebaut',story:'Die Avenida da Liberdade wurde 1886 erbaut, inspiriert von den Champs-Elysees. Sie verlauft 1,2 km von Restauradores bis zum Marques-de-Pombal-Platz, gesaumt von Luxusmarken und wunderschonem Mosaikpflaster.',longStory:undefined,tip:'"Gebaut, um wie Paris auszusehen. Jede Luxusmarke der Welt hat hier ein Geschaft — aber das Beste ist noch immer das Pflaster."'}},
-  {id:'marques_pombal',lat:38.7267,lon:-9.1499,mapsSearch:'Praca Marques de Pombal Lisboa',tour:0,cat:'history',foodType:undefined,tags:['Marquis of Pombal','Sebastiao Jose','Earthquake','Jesuit Expulsion','Top of Liberdade'],
+  {id:'marques_pombal',lat:38.7269,lon:-9.1502,mapsSearch:'Praca Marques de Pombal Lisboa',tour:0,cat:'history',foodType:undefined,tags:['Marquis of Pombal','Sebastiao Jose','Earthquake','Jesuit Expulsion','Top of Liberdade'],
    en:{name:'Marques de Pombal Square',subtitle:'The man who rebuilt Lisbon watches over his city',story:'At the top of Avenida da Liberdade, the Marquis of Pombal stands on a tall column, surrounded by allegorical lions, surveying the city he rebuilt after 1755. His real name was Sebastiao Jose de Carvalho e Melo — Pombal was just the name of a village. He rebuilt Lisbon using the world\'s first earthquake-resistant construction system. He also expelled the Jesuits, tortured and executed his political enemies, and was eventually tried and exiled. He died in 1782 partly disgraced. His rebuilt city stood — and stands.',longStory:undefined,tip:undefined},
    de:{name:'Marques-de-Pombal-Platz',subtitle:'Der Mann, der Lissabon wiederaufbaute, wacht uber seine Stadt',story:'Am Ende der Avenida da Liberdade steht der Marquis de Pombal auf einer hohen Saule und uberblickt die Stadt, die er nach 1755 wiederaufbaute. Sein echter Name: Sebastiao Jose de Carvalho e Melo. Pombal war nur ein Dorfname. Er baute Lissabon mit dem weltweit ersten erdbebensicheren Konstruktionssystem wieder auf. Er vertrieb auch die Jesuiten und liess seine politischen Gegner foltern.',longStory:undefined,tip:undefined}},
-  {id:'estrela',lat:38.7135,lon:-9.1575,mapsSearch:'Basilica da Estrela Lisboa Jardim da Estrela',tour:0,cat:'church',foodType:undefined,tags:['Basilica da Estrela','Neoclassical','Garden','Queen Maria I','Belem Area'],
+  {id:'estrela',lat:38.7131,lon:-9.1579,mapsSearch:'Basilica da Estrela Lisboa Jardim da Estrela',tour:0,cat:'church',foodType:undefined,tags:['Basilica da Estrela','Neoclassical','Garden','Queen Maria I','Belem Area'],
    en:{name:'Basilica da Estrela & Jardim da Estrela',subtitle:'A basilica, a queen\'s vow, and the best garden in Lisbon',story:'The Basilica da Estrela was built by Queen Maria I in fulfillment of a religious vow — she promised God a basilica if she produced a male heir. She did. The basilica was completed in 1790. The white dome is visible from much of the city. Directly across the street, the Jardim da Estrela is the most beautiful public garden in Lisbon: ponds, ducks, a wonderful old bandstand, and the kind of afternoon stillness that makes you understand why the Portuguese value a slow pace of life.',longStory:undefined,tip:'Good destination for groups who want less crowds. "This garden is where the real Lisbon families come on Sunday afternoon."'},
    de:{name:'Basilica da Estrela & Jardim da Estrela',subtitle:'Eine Basilika, ein Versprechen einer Konigin und der schonste Garten Lissabons',story:'Die Basilika da Estrela wurde von Konigin Maria I. als Erfullung eines religiosen Gelubdes gebaut — sie versprach Gott eine Basilika, wenn sie einen mannlichen Erben bekame. Sie tat es. Direkt gegenuber: der Jardim da Estrela, der schonste Stadtpark Lissabons.',longStory:undefined,tip:'"Dieser Garten ist der Ort, wo echte Lissaboner Familien am Sonntagsnachmittag hinkommen."'}},
   {id:'lx_factory',lat:38.7024,lon:-9.1785,mapsSearch:'LX Factory Lisboa Alcantara',tour:0,cat:'culture',foodType:undefined,tags:['LX Factory','Creative Hub','Sunday Market','Restaurants','Under the Bridge'],
@@ -347,7 +354,7 @@ const STOPS = [
   {id:'ponte25',lat:38.6999,lon:-9.1795,mapsSearch:'Ponte 25 de Abril Lisboa Pilar 7',tour:0,cat:'history',foodType:undefined,tags:['25 de Abril Bridge','Golden Gate','Same Company','Carnation Revolution','Pilar 7 Experience'],
    en:{name:'Ponte 25 de Abril & Pilar 7',subtitle:'Lisbon\'s Golden Gate — and only two bridges across the whole river',story:'The 25 de Abril Bridge was built by the same American company that built the Golden Gate — U.S. Steel. It opened in 1966, named the Salazar Bridge after the dictator. On April 25, 1974 it was renamed after the revolution. The bridge is 2.3km long and carries both road and rail traffic. An important fact tourists never know: there are only TWO bridges crossing the entire Tagus river — this one and the Vasco da Gama Bridge 12km east, the longest bridge in Europe. Pilar 7 is the visitor experience inside one of the bridge\'s pillars — you can walk up to the level of the road and feel the vibration as cars pass above.',longStory:undefined,tip:'"Built by the same company as the Golden Gate. And here is a fact nobody knows: there are only two bridges across this entire river."'},
    de:{name:'Ponte 25 de Abril & Pilar 7',subtitle:'Lissabons Golden Gate — und nur zwei Brucken uber den ganzen Fluss',story:'Die 25-de-Abril-Brucke wurde von derselben amerikanischen Firma gebaut wie die Golden Gate — U.S. Steel. Eroffnet 1966 als Salazar-Brucke, nach der Revolution umbenannt. Nur ZWEI Brucken uberspannen den gesamten Tejo. Pilar 7 ist das Besuchererlebnis im Pfeiler.',longStory:undefined,tip:'"Dieselbe Firma wie die Golden Gate. Und ein Fakt, den niemand kennt: es gibt nur zwei Brucken uber diesen gesamten Fluss."'}},
-  {id:'cristo_rei',lat:38.6768,lon:-9.1723,mapsSearch:'Cristo Rei Lisboa Almada Santuario',tour:0,cat:'history',foodType:undefined,tags:['Cristo Rei','WWII','Rio de Janeiro','Alcantara View','South Bank'],
+  {id:'cristo_rei',lat:38.6755,lon:-9.1729,mapsSearch:'Cristo Rei Lisboa Almada Santuario',tour:0,cat:'history',foodType:undefined,tags:['Cristo Rei','WWII','Rio de Janeiro','Alcantara View','South Bank'],
    en:{name:'Santuario de Cristo Rei',subtitle:'Built as a thank-you for staying out of the war',story:'Cristo Rei was built after World War II as Portugal\'s national vow of thanks for staying out of the war. It was inspired by the Christ the Redeemer statue in Rio de Janeiro, which the then-Cardinal of Lisbon saw during a visit to Brazil. The statue stands 82 metres above the south bank of the Tagus, arms open toward Lisbon. From the viewpoint at its feet, you can see the bridge, the city, and on a clear day the hills of Sintra.',longStory:undefined,tip:'Visible from many points in the city. "Built to say thank you for staying out of World War II. Arms open toward Lisbon."'},
    de:{name:'Santuario de Cristo Rei',subtitle:'Als Dankeschon fur den Verbleib ausserhalb des Krieges gebaut',story:'Cristo Rei wurde nach dem Zweiten Weltkrieg als nationaler Dankeschwur Portugals gebaut — dafur, aus dem Krieg herausgeblieben zu sein. Inspiriert vom Christus dem Erlöser in Rio de Janeiro. Die Statue steht 82 Meter uber dem Sudufer des Tejo.',longStory:undefined,tip:'Von vielen Punkten der Stadt sichtbar. "Als Dankeschon gebaut, weil Portugal aus dem Zweiten Weltkrieg herausblieb."'}},
   {id:'feira_ladra',lat:38.7164,lon:-9.1257,mapsSearch:'Feira da Ladra Lisboa Campo de Santa Clara',tour:0,cat:'culture',foodType:undefined,tags:['Feira da Ladra','Flea Market','Tuesday Saturday','Santa Clara','Antiques'],
@@ -359,7 +366,7 @@ const STOPS = [
   {id:'jardim_graca',lat:38.716,lon:-9.132,mapsSearch:'Jardim de Cerca da Graca Lisboa',tour:0,cat:'viewpoint',foodType:undefined,tags:['Hidden Garden','City Walls','Graca','Locals Only','Urban Green'],
    en:{name:'Jardim de Cerca da Graca',subtitle:'The hidden garden along the ancient city walls',story:'This long, narrow garden follows the route of Lisbon\'s ancient city walls, hidden from the main streets. Opened in 2015, it is barely on any tourist map but locals love it as a shortcut and a quiet green corridor through the old city, with views over Mouraria and the Tagus. The garden follows the line of the 8th-century Moorish walls.',longStory:undefined,tip:'Almost no tourists know this garden. "This path follows the original Moorish city walls from the 8th century."'},
    de:{name:'Jardim de Cerca da Graca',subtitle:'Der versteckte Garten entlang der alten Stadtmauern',story:'Dieser lange, schmale Garten folgt dem Verlauf von Lissabons alten Stadtmauern. 2015 eroffnet, auf kaum einer Tourismuskarte, aber von Einheimischen als ruhiger gruner Korridor geliebt.',longStory:undefined,tip:'"Fast keine Touristen kennen diesen Garten. Er folgt den originalen maurischen Stadtmauern aus dem 8. Jahrhundert."'}},
-  {id:'calcada_story',lat:38.7172,lon:-9.134,mapsSearch:'Calcada do Monte Graca Lisboa',tour:0,cat:'culture',foodType:undefined,tags:['Calcada','Cobblestone','Tradition','Calçada Portuguesa','Handmade Pavement'],
+  {id:'calcada_story',lat:38.7169,lon:-9.1348,mapsSearch:'Calcada do Monte Graca Lisboa',tour:0,cat:'culture',foodType:undefined,tags:['Calcada','Cobblestone','Tradition','Calçada Portuguesa','Handmade Pavement'],
    en:{name:'Calcada — what does it mean?',subtitle:'The stone pavement that defines Lisbon',story:'Calcada — literally "limestone pavement" or "cobbled road" — refers to the distinctive hand-laid stone mosaic pavement you see everywhere in Lisbon. The technique, using small cubes of limestone (branca — white) and basalt (preta — black), was brought to Portugal from Moorish North Africa. The patterns range from simple waves (as at Rossio) to elaborate maritime motifs and city symbols. Each panel is laid entirely by hand by a calceteiro — a pavement artist. A skilled calceteiro can lay about 15 square metres per day. Calcada do Monte is a particularly beautiful example of a steep calcada street.',longStory:undefined,tip:'Point to any calcada pavement. "Every stone in this pavement was placed by hand. The same technique has been used here for over 400 years."'},
    de:{name:'Calcada — was bedeutet das?',subtitle:'Das Steinpflaster, das Lissabon definiert',story:'Calcada — wortlich "Kalksteinpflaster" — bezeichnet das charakteristische handverlegte Mosaikpflaster, das man uberall in Lissabon sieht. Die Technik, mit kleinen Wurfeln aus Kalkstein (weiss) und Basalt (schwarz), stammt aus dem maurischen Nordafrika. Ein geschickter Calceteiro verlegt etwa 15 Quadratmeter pro Tag.',longStory:undefined,tip:'"Jeder Stein in diesem Pflaster wurde von Hand gelegt. Dieselbe Technik wird hier seit uber 400 Jahren angewendet."'}},
   {id:'stjusta',lat:38.7116,lon:-9.1401,mapsSearch:'Elevador de Santa Justa Lisboa',tour:0,cat:'gem',foodType:undefined,tags:['Hidden Tip','1902','Eiffel Student','Skip the Queue','Local Secret'],
@@ -377,7 +384,7 @@ const STOPS = [
   {id:'fado_museum',lat:38.7083,lon:-9.1297,mapsSearch:'Museu do Fado Lisboa Alfama Largo do Chafariz de Dentro',tour:0,cat:'culture',foodType:undefined,tags:['Fado','UNESCO','Saudade','World Heritage 2011','Alfama'],
    en:{name:'Museu do Fado',subtitle:'The sound of Lisbon — UNESCO heritage since 2011',story:'Fado means fate or destiny. Born in early 19th century Alfama among fishermen and working-class communities, it is the sound of saudade — a bittersweet longing for something beautiful that is lost. There is no direct translation of saudade into any other language. UNESCO declared fado World Intangible Cultural Heritage in 2011.',longStory:undefined,tip:undefined},
    de:{name:'Museu do Fado',subtitle:'Der Klang Lissabons — UNESCO-Erbe seit 2011',story:'Fado bedeutet Schicksal oder Bestimmung. Im fruhen 19. Jahrhundert in Alfama unter Fischern geboren, ist es der Klang der Saudade — eine bitterstisse Sehnsucht nach etwas Schones, das verloren ist. Fur Saudade gibt es keine direkte Ubersetzung.',longStory:undefined,tip:undefined}},
-  {id:'jardim_botanico',lat:38.7159,lon:-9.1488,mapsSearch:'Jardim Botanico de Lisboa Universidade',tour:0,cat:'viewpoint',foodType:undefined,tags:['Botanical Garden','University of Lisbon','Secret Garden','Flora','Hidden'],
+  {id:'jardim_botanico',lat:38.7168,lon:-9.1491,mapsSearch:'Jardim Botanico de Lisboa Universidade',tour:0,cat:'viewpoint',foodType:undefined,tags:['Botanical Garden','University of Lisbon','Secret Garden','Flora','Hidden'],
    en:{name:'Jardim Botanico de Lisboa',subtitle:'The secret garden behind the city',story:'The Botanical Garden of Lisbon, belonging to the University of Lisbon, is one of the best-kept secrets in the city. Founded in 1873, it covers 4 hectares in the heart of the city with over 1,500 plant species from around the world — many of them brought back by Portuguese explorers during the Age of Discoveries. Entered from Rua da Escola Politecnica, it is quiet, shaded and almost entirely free of tourists.',longStory:undefined,tip:'Good suggestion for couples or anyone asking for something different. "Most tourists never find it. 4 hectares of plants the explorers brought back from the world."'},
    de:{name:'Jardim Botanico de Lisboa',subtitle:'Der geheime Garten hinter der Stadt',story:'Der Botanische Garten Lissabons, der Universitat Lisboa gehorend, ist eines der bestgehuteten Geheimnisse der Stadt. 1873 gegrundet, 4 Hektar im Herzen der Stadt mit uber 1.500 Pflanzenarten aus aller Welt.',longStory:undefined,tip:'"Fast keine Touristen finden ihn. 4 Hektar Pflanzen, die Entdecker aus der ganzen Welt mitgebracht haben."'}},
   {id:'bertrand',lat:38.7108,lon:-9.1421,mapsSearch:'Livraria Bertrand Chiado Lisboa Rua Garrett',tour:0,cat:'gem',foodType:undefined,tags:['Worlds Oldest Bookshop','1732','Guinness Record','Fernando Pessoa','Chiado'],
@@ -404,7 +411,7 @@ const STOPS = [
   {id:'bifana_afonso',lat:38.712,lon:-9.1347,mapsSearch:'As Bifanas do Afonso Lisboa Rua da Madalena Alfama',tour:0,cat:'food',foodType:'local',tags:['Bifana','Best Bifana','Rua da Madalena','Bourdain','Cash Only','Standing Room'],
    en:{name:'As Bifanas do Afonso',subtitle:'The king of Lisbon\'s greatest sandwich',story:'Look through the window as you approach: a bubbling cauldron of pork simmering in white wine, garlic and paprika. This is Lisbon\'s most famous bifana spot — Anthony Bourdain featured it on his show. Standing room only, cash only, about €3. The pork is slow-cooked until it falls apart, soaked in the wine-garlic sauce, stuffed into a crusty roll. Add mustard. Always add mustard. A second location opened in 2025 at Rua dos Sapateiros with actual seating — same recipe, shorter queue.',longStory:undefined,tip:'"This is the most famous bifana in Lisbon. Anthony Bourdain called it glory on a plate. €3, cash, mustard. That is all you need to know."'},
    de:{name:'As Bifanas do Afonso',subtitle:'Der Konig von Lissabons grosstem Sandwich',story:'Schauen Sie durch das Fenster: ein blubbernder Kessel Schweinefleisch in Weisswein, Knoblauch und Paprika. Dies ist Lissabons beruhmtester Bifana-Ort — von Anthony Bourdain in seiner Sendung vorgestellt. Nur Stehplatz, nur Bar, ca. 3 Euro. Eine zweite Filiale offnete 2025 in der Rua dos Sapateiros mit Sitzplatzen.',longStory:undefined,tip:'"Das ist die beruhmteste Bifana Lissabons. Bourdain nannte es Herrlichkeit auf einem Teller. 3 Euro, Bargeld, Senf. Das ist alles."'}},
-  {id:'o_trevo',lat:38.7101,lon:-9.1422,mapsSearch:'O Trevo Lisboa Praca Luis de Camoes bifana Bourdain',tour:0,cat:'food',foodType:'tourist',tags:['Bifana','Bourdain','Chiado','Camoes Square','O Trevo'],
+  {id:'o_trevo',lat:38.7104,lon:-9.1424,mapsSearch:'O Trevo Lisboa Praca Luis de Camoes bifana Bourdain',tour:0,cat:'food',foodType:'tourist',tags:['Bifana','Bourdain','Chiado','Camoes Square','O Trevo'],
    en:{name:'O Trevo — Bourdain\'s Bifana',subtitle:'Right on the square named after Portugal\'s greatest poet',story:'O Trevo sits on Praca Luis de Camoes and is famous as the bifana spot Anthony Bourdain specifically endorsed. Bifanas served on carcass bread with the meat sticking out, good sauce. Also serves pregos (beef version), rissois and other Portuguese snacks. Great location — you are already on the square when you stop at the Camoes statue, so this is the natural food extension of that story.',longStory:undefined,tip:'Natural combo: stop at Camoes statue for the story, then "that bar on the corner is where Bourdain ate his bifana."'},
    de:{name:'O Trevo — Bourdains Bifana',subtitle:'Direkt auf dem Platz benannt nach Portugals grosstem Dichter',story:'O Trevo liegt am Praca Luis de Camoes und ist beruhmt als der Bifana-Ort, den Bourdain personlich empfahl. Bifanas auf Crusty Bread, gute Sauce. Auch Pregos und andere Snacks.',longStory:undefined,tip:'Naturliche Kombination: Camoes-Statue fur die Geschichte, dann "die Bar an der Ecke ist, wo Bourdain seine Bifana ass."'}},
   {id:'tendinha',lat:38.7143,lon:-9.1393,mapsSearch:'A Tendinha Rossio Lisboa bacalhau snack bar',tour:0,cat:'food',foodType:'local',tags:['Bacalhau Cakes','Salgados','Rossio','Local Snack Bar','Alfredo','Traditional'],
@@ -465,6 +472,72 @@ let lang='en',currentTour=0,currentCat='all',openStopId=null,longStoryOpen=false
 let activeMarkers={},routeLayers=[];
 let guideMode=false,tourSequence=[],tourIndex=0;
 let userMarker=null,watchId=null,gpsActive=false;
+const WIKI_PHOTO_TITLES = {
+  'comercio':'Praça_do_Comércio',
+  'arco_augusta':'Rua_Augusta_Arch',
+  'rossio':'Rossio_(Lisbon)',
+  'restauradores':'Praça_dos_Restauradores',
+  'portas':'Largo_das_Portas_do_Sol',
+  'sta_luzia_view':'Miradouro_de_Santa_Luzia',
+  'castle':'São_Jorge_Castle',
+  'se_cathedral':'Lisbon_Cathedral',
+  'sto_antonio':'Igreja_de_Santo_António_de_Lisboa',
+  'sroque':'São_Roque_Church,_Lisbon',
+  'alcantara_view':'Miradouro_de_São_Pedro_de_Alcântara',
+  'carmo':'Carmo_Convent',
+  'pessoa':'A_Brasileira',
+  'camoes_square':'Praça_Luís_de_Camões',
+  'chiado':'Chiado',
+  'adamastor':'Miradouro_de_Santa_Catarina',
+  'monte':'Miradouro_da_Senhora_do_Monte',
+  'graca_view':'Miradouro_da_Graça',
+  'panteao':'National_Pantheon_(Lisbon)',
+  'stv_fora':'São_Vicente_de_Fora_Church',
+  'baixa':'Lisbon_Baixa',
+  'pink_street':'Pink_Street,_Lisbon',
+  'bairro_alto':'Bairro_Alto',
+  'principe_real':'Príncipe_Real',
+  'av_liberdade':'Avenida_da_Liberdade',
+  'marques_pombal':'Marquis_of_Pombal_Square',
+  'estrela':'Basílica_da_Estrela',
+  'lx_factory':'LX_Factory',
+  'ponte25':'25_de_Abril_Bridge',
+  'cristo_rei':'Christ_the_King_(Lisbon)',
+  'feira_ladra':'Feira_da_Ladra',
+  'tram28':'Tram_28_(Lisbon)',
+  'jardim_graca':'Cerca_da_Graça_Garden',
+  'stjusta':'Santa_Justa_Lift',
+  'alfama_walk':'Alfama',
+  'mouraria':'Mouraria',
+  'martim_moniz':'Praça_Martim_Moniz',
+  'fado_museum':'Museu_do_Fado',
+  'bertrand':'Livraria_Bertrand',
+  'museu_cerveja':'Museu_da_Cerveja_(Lisbon)',
+  'timeout_market':'Time_Out_Market_Lisboa',
+  'cais_sodre':'Cais_do_Sodré_station',
+  'jardim_botanico':'Lisbon_Botanical_Garden',
+};
+
+function loadStopPhoto(stopId) {
+  var ph = document.getElementById('panel-photo');
+  ph.innerHTML = '';
+  var title = WIKI_PHOTO_TITLES[stopId];
+  if(!title) return;
+  fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.thumbnail && d.thumbnail.source){
+        var img = document.createElement('img');
+        img.src = d.thumbnail.source.replace(/\/\d+px-/, '/400px-');
+        img.alt = d.title || '';
+        img.onload = function(){ img.classList.add('loaded'); };
+        img.onerror = function(){ ph.innerHTML=''; };
+        ph.appendChild(img);
+      }
+    })
+    .catch(function(){});
+}
+
 const stopIndex={};
 STOPS.forEach(s=>stopIndex[s.id]=s);
 
@@ -482,7 +555,7 @@ function buildPanelHTML(){
     +'<div id="panel-subtitle"></div>'
     +'</div>'
     +'<div id="panel-body">'
-    +'<div id="panel-story"></div>'
+    +'<div id="panel-photo"></div>'+'<div id="panel-story"></div>'
     +'<button id="expand-btn" onclick="toggleLongStory()"></button>'
     +'<div id="long-story-sep"></div>'
     +'<div id="long-story"></div>'
@@ -580,6 +653,7 @@ function openPanel(id){
     fbw.appendChild(fb);
   }
   document.getElementById('panel-story').textContent=d.story||'';
+  loadStopPhoto(id);
   var ls=document.getElementById('long-story');
   var eb=document.getElementById('expand-btn');
   var sep=document.getElementById('long-story-sep');
@@ -762,6 +836,8 @@ function startGPS(){
       if(location.protocol==='file:') msg='GPS needs HTTPS — works on github.io';
       setGpsBar('error',msg);
       if(lb){lb.textContent='GPS off';lb.classList.remove('active')}
+      var ghb=document.getElementById('gps-header-btn');
+      if(ghb){ghb.classList.remove('active');ghb.textContent='\u25b2 GPS';}
     },
     {enableHighAccuracy:true,maximumAge:3000,timeout:12000}
   );
