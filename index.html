@@ -243,12 +243,12 @@ html,body{height:100%;font-family:'Lato',sans-serif;background:var(--navy);color
 <script>
 const UI = {
   en:{hdrSub:'Tap any pin for history & stories · English · Deutsch · Bosanski',all:'All stops',catAll:'All',catView:'Views',catHist:'History',catChurch:'Churches',catGem:'Gems',catCult:'Culture',catFood:'Food',guideMode:'Guide Mode',
-    mapsBtn:'Open in Google Maps',navBtn:'Navigate',guideTip:'Guide tip: ',readMore:'Read full story',expandBtn:'Read the full story  \u25be',collapseBtn:'Collapse  \u25b4',longLabel:'THE FULL STORY',
+    mapsBtn:'Open in Google Maps',navBtn:'Navigate',navMaps:'Navigate in Google Maps',guideTip:'Guide tip: ',readMore:'Read full story',expandBtn:'Read the full story  \u25be',collapseBtn:'Collapse  \u25b4',longLabel:'THE FULL STORY',
     tourLabels:{3:'3-Hill stop',5:'5-Hill stop',7:'7-Hill stop',0:'Landmark'},
     catLabels:{viewpoint:'Viewpoint',history:'History',church:'Church',gem:'Hidden Gem',food:'Food & Drink',culture:'Culture'},
     foodLabels:{local:'Local gem',tourist:'Famous spot',both:'Local & Famous'}},
   de:{hdrSub:'Tippe auf einen Pin fur Geschichte · English · Deutsch · Bosanski',all:'Alle Orte',catAll:'Alle',catView:'Aussicht',catHist:'Geschichte',catChurch:'Kirchen',catGem:'Geheimtipps',catCult:'Kultur',catFood:'Essen',guideMode:'Guide-Modus',
-    mapsBtn:'In Google Maps offnen',navBtn:'Navigieren',guideTip:'Guide-Tipp: ',readMore:'Ganze Geschichte',expandBtn:'Die ganze Geschichte  \u25be',collapseBtn:'Einklappen  \u25b4',longLabel:'DIE GANZE GESCHICHTE',
+    mapsBtn:'In Google Maps offnen',navBtn:'Navigieren',navMaps:'In Google Maps navigieren',guideTip:'Guide-Tipp: ',readMore:'Ganze Geschichte',expandBtn:'Die ganze Geschichte  \u25be',collapseBtn:'Einklappen  \u25b4',longLabel:'DIE GANZE GESCHICHTE',
     tourLabels:{3:'3-Hugel-Stop',5:'5-Hugel-Stop',7:'7-Hugel-Stop',0:'Sehenswurdigkeit'},
     catLabels:{viewpoint:'Aussichtspunkt',history:'Geschichte',church:'Kirche',gem:'Geheimtipp',food:'Essen & Trinken',culture:'Kultur'},
     foodLabels:{local:'Einheimischer Tipp',tourist:'Beruhmter Ort',both:'Lokal & Beruhmt'}}
@@ -717,7 +717,21 @@ function setLang(l,btn){
   document.querySelectorAll('.cat-btn').forEach(function(b,i){if(ck[i])b.textContent=UI[l][ck[i]]});
   document.getElementById('guide-btn').textContent=(guideMode?'⏹ ':'▶ ')+UI[l].guideMode;
   renderMarkers();
-  if(openStopId)openPanel(openStopId);
+  // Refresh only text in open panel — no full rebuild, no flicker
+  if(openStopId){
+    var _s=stopIndex[openStopId];
+    if(_s){
+      var _d=_s[l];
+      var _el=function(id){return document.getElementById(id)};
+      if(_el('panel-name'))_el('panel-name').textContent=_d.name;
+      if(_el('panel-subtitle'))_el('panel-subtitle').textContent=_d.subtitle||'';
+      if(_el('panel-story'))_el('panel-story').textContent=_d.story||'';
+      var _tp=_el('panel-tip');
+      if(_tp){if(_d.tip){_tp.textContent=UI[l].guideTip+_d.tip;_tp.classList.add('show')}else _tp.classList.remove('show')}
+      var _pm=_el('panel-maps');
+      if(_pm)_pm.textContent=userMarker?UI[l].navMaps:UI[l].mapsBtn;
+    }
+  }
   if(guideMode)updateTourBar();
 }
 
@@ -824,8 +838,15 @@ function startGPS(){
         });
         if(best!==null){tourIndex=best;updateTourBar()}
       }
-      // refresh open panel maps button when GPS acquired
-      if(openStopId) openPanel(openStopId);
+      // Update only the Maps button URL — no panel rebuild
+      if(openStopId){
+        var _s=stopIndex[openStopId];
+        var _pm=document.getElementById('panel-maps');
+        if(_s&&_pm){
+          _pm.href='https://maps.google.com/?saddr='+ll[0]+','+ll[1]+'&daddr='+_s.lat+','+_s.lon;
+          _pm.textContent=UI[lang].navMaps;
+        }
+      }
     },
     function(err){
       var msg;
