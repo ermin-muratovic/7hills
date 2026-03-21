@@ -471,7 +471,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
 let lang='en',currentTour=0,currentCat='all',openStopId=null,longStoryOpen=false;
 let activeMarkers={},routeLayers=[];
 let guideMode=false,tourSequence=[],tourIndex=0;
-let userMarker=null,watchId=null,gpsActive=false;
+let userMarker=null,watchId=null,gpsActive=false,nearestDetected=false;
 const WIKI_PHOTO_TITLES = {
   'comercio':'Praça_do_Comércio',
   'arco_augusta':'Rua_Augusta_Arch',
@@ -743,7 +743,7 @@ function showTour(n,btn){
   var bounds={0:[[38.699,-9.183],[38.730,-9.120]],3:[[38.704,-9.142],[38.723,-9.126]],
     5:[[38.703,-9.155],[38.720,-9.120]],7:[[38.699,-9.183],[38.730,-9.120]]};
   map.flyToBounds(bounds[n]||bounds[0],{padding:[60,60],duration:1.2});
-  if(guideMode&&n>0){tourSequence=TOUR_SEQ[n]||[];tourIndex=0;updateTourBar()}
+  if(guideMode&&n>0){tourSequence=TOUR_SEQ[n]||[];tourIndex=0;nearestDetected=false;updateTourBar()}
 }
 function toggleCat(cat,btn){
   currentCat=cat;
@@ -759,7 +759,7 @@ function toggleGuideMode(btn){
     tb.classList.add('show');btn.classList.add('active');
     btn.textContent='⏹ '+UI[lang].guideMode;
     tourSequence=currentTour>0?(TOUR_SEQ[currentTour]||[]):[];
-    tourIndex=0;updateTourBar();
+    tourIndex=0;nearestDetected=false;updateTourBar();
     startGPS();
   } else {
     tb.classList.remove('show');btn.classList.remove('active');
@@ -782,15 +782,16 @@ function updateTourBar(){
   var s=stopIndex[sid];
   if(s){document.getElementById('tour-stop-name').textContent=s[lang].name}
   document.getElementById('tour-stop-counter').textContent=(tourIndex+1)+' / '+seq.length;
-  document.querySelector('.tour-prev').disabled=(tourIndex===0);
-  document.querySelector('.tour-next').disabled=(tourIndex>=seq.length-1);
+  // Never disable — tour is circular
+  document.querySelector('.tour-prev').disabled=false;
+  document.querySelector('.tour-next').disabled=false;
 }
 
 function tourStep(dir){
   if(!tourSequence||tourSequence.length===0) return;
-  var newIdx=tourIndex+dir;
-  if(newIdx<0||newIdx>=tourSequence.length) return;
-  tourIndex=newIdx;
+  var len=tourSequence.length;
+  // Circular: wrap from last→first and first→last
+  tourIndex=(tourIndex+dir+len)%len;
   var s=stopIndex[tourSequence[tourIndex]];
   if(s){map.flyTo([s.lat,s.lon],16,{duration:0.9});openPanel(s.id);updateTourBar()}
 }
@@ -827,8 +828,9 @@ function startGPS(){
       var acc=Math.round(pos.coords.accuracy);
       setGpsBar('active','● GPS active (±'+acc+'m)');
       if(lb){lb.textContent='● GPS';lb.classList.add('active')}
-      // nearest stop detection in guide mode
-      if(guideMode&&currentTour>0&&tourIndex===0){
+      // nearest stop detection — runs ONCE only on first GPS fix
+      if(guideMode&&currentTour>0&&!nearestDetected){
+        nearestDetected=true;
         var seq=TOUR_SEQ[currentTour]||[];
         var best=null,bestD=Infinity;
         seq.forEach(function(sid,i){
@@ -836,7 +838,12 @@ function startGPS(){
           var d=Math.pow(s.lat-ll[0],2)+Math.pow(s.lon-ll[1],2);
           if(d<bestD){bestD=d;best=i}
         });
-        if(best!==null){tourIndex=best;updateTourBar()}
+        if(best!==null&&best>0){
+          tourIndex=best;
+          var _ns=stopIndex[seq[best]];
+          if(_ns){map.flyTo([_ns.lat,_ns.lon],16,{duration:1.0});openPanel(_ns.id)}
+          updateTourBar();
+        }
       }
       // Update only the Maps button URL — no panel rebuild
       if(openStopId){
